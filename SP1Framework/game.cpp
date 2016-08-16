@@ -10,8 +10,14 @@
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
+
+//----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
 bool renderMapAlready, useEchoLocation = false, countdownStarted = false;
+
+//----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
 int timer, XlocationX, XlocationY, playerLocationX, playerLocationY, radiusX, radiusY;
+
+//----------------SET ARRAY FOR THE MAP----------------
 char mapArray[45][45] = { '0', };
 
 // Game specific variables here
@@ -194,10 +200,17 @@ void moveCharacter()
     }
     if (g_abKeyPressed[K_SPACE] && !useEchoLocation && !countdownStarted)
     {
+		//----------------STARTING ECHO LOCATION----------------
 		useEchoLocation = true;
+
+		//----------------SET TIMER WITH ELAPSED TIME----------------
 		timer = (int)g_dElapsedTime;
+
+		//----------------SET PLAYER LOCATION----------------
 		playerLocationX = g_sChar.m_cLocation.X;
 		playerLocationY = g_sChar.m_cLocation.Y;
+
+		//----------------SETTING RADIUS FOR ECHO LOCATION----------------
 		radiusX = 20;
 		radiusY = 10;
         bSomethingHappened = true;
@@ -244,6 +257,7 @@ void renderGame()
 
 void renderMap()
 {
+	//----------------STARTS COUNTDOWN WHEN COUNTDOWNSTARTED == TRUE----------------
 	if (countdownStarted)
 	{
 		if (g_dElapsedTime > timer) 
@@ -295,8 +309,10 @@ void renderMap()
 							//----------------THIS GIVES THE FACTOR OF RANDOMNESS AND CREATES A MAZE----------------
 							if (rand() % 100 < 5 && !spawnPoint)
 							{
-								//----------------THIS SETS THE SPAWN POINT----------------
+								//----------------THIS SETS THE END POINT----------------
 								mapArray[i][j] = stair;
+
+								//----------------SAVE LOCATION OF END POINT----------------
 								XlocationX = i;
 								XlocationY = j;
 								spawnPoint = true;
@@ -317,20 +333,20 @@ void renderMap()
 				}
 			}
 		}
+		//----------------SETTING PLAYER LOCATION TO FLOOR SO IT WILL NOT STUCK IN WALL OR DIE A TERRIBU DEATHFU----------------
 		mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y] = floors;
 		renderMapAlready = true;
 	}
 
+	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
 	for (int j = 0; j <= y; j++)
 	{
 		c.Y = j;
 		for (int i = 0; i <= x; i++)
 		{
 			c.X = i;
-			if(mapArray[i][j] == stair)
-				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
-			else
-				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+			//----------------SETTING MAP TO TOTAL DARKNESSSSSS----------------
+			g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
 
 
 		}
@@ -342,6 +358,7 @@ void renderMap()
 		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
 		{
 			if (radiusY >= 9) {
+				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
 				c.X = XlocationX;
 				c.Y = XlocationY;
 				g_Console.writeToBuffer(c, mapArray[XlocationX][XlocationY]);
@@ -351,20 +368,21 @@ void renderMap()
 			for (int j = playerLocationX + radiusX; j >= playerLocationX - radiusX; j--)
 			{
 				c.X = j;
-
+				//----------------MAKING FLOORS VISIBLE----------------
 				if (mapArray[j][i] == floors)
 					g_Console.writeToBuffer(c, mapArray[j][i], echoedFloor);
 
 			}
 		}
 
-
+		//----------------MAKE ECHO LOCATION RADIUS SHRINK GRADUALLY----------------
 		if (g_dElapsedTime > timer + 1)
 		{
 			timer = (int)g_dElapsedTime;
 			radiusX--;
 			radiusY--;
 		}
+
 
 		if (radiusY <= -1)
 		{
@@ -380,6 +398,7 @@ void renderMap()
 		for (int j = g_sChar.m_cLocation.X + 1; j >= g_sChar.m_cLocation.X - 1; j--)
 		{
 			c.X = j;
+			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS----------------
 			if (mapArray[j][i] == floors)
 				g_Console.writeToBuffer(c, mapArray[j][i], floorColor);
 
