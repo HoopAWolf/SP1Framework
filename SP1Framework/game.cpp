@@ -10,6 +10,9 @@
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
+bool renderMapAlready, useEchoLocation = false, countdownStarted = false;
+int timer, XlocationX, XlocationY, playerLocationX, playerLocationY, radiusX, radiusY;
+char mapArray[45][45] = { '0', };
 
 // Game specific variables here
 SGameChar   g_sChar;
@@ -17,7 +20,7 @@ EGAMESTATES g_eGameState = S_SPLASHSCREEN;
 double  g_dBounceTime; // this is to prevent key bouncing, so we won't trigger keypresses more than once
 
 // Console object
-Console g_Console(80, 25, "SP1 Framework");
+Console g_Console(100, 25, "Deep Sleep - By Team Insomnia");
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -35,9 +38,11 @@ void init( void )
     // sets the initial state for the game
     g_eGameState = S_SPLASHSCREEN;
 
-    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X / 2;
-    g_sChar.m_cLocation.Y = g_Console.getConsoleSize().Y / 2;
+    g_sChar.m_cLocation.X = g_Console.getConsoleSize().X - 60;
+    g_sChar.m_cLocation.Y = (g_Console.getConsoleSize().Y / 2) + 5;
     g_sChar.m_bActive = true;
+	renderMapAlready = false;
+	useEchoLocation = false;
     // sets the width, height and the font name to use in the console
     g_Console.setConsoleFont(0, 16, L"Consolas");
 }
@@ -152,30 +157,49 @@ void moveCharacter()
     if (g_abKeyPressed[K_UP] && g_sChar.m_cLocation.Y > 0)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.Y--;
-        bSomethingHappened = true;
+		if (mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y - 1] != (char)178)
+		{
+
+			g_sChar.m_cLocation.Y--;
+			bSomethingHappened = true;
+		}
     }
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.X--;
-        bSomethingHappened = true;
+		if (mapArray[g_sChar.m_cLocation.X - 1] [g_sChar.m_cLocation.Y] != (char)178)
+		{
+			g_sChar.m_cLocation.X--;
+			bSomethingHappened = true;
+		}
     }
+
     if (g_abKeyPressed[K_DOWN] && g_sChar.m_cLocation.Y < g_Console.getConsoleSize().Y - 1)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.Y++;
-        bSomethingHappened = true;
+		if (mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y + 1] != (char)178)
+		{
+			g_sChar.m_cLocation.Y++;
+			bSomethingHappened = true;
+		}
     }
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
     {
         //Beep(1440, 30);
-        g_sChar.m_cLocation.X++;
-        bSomethingHappened = true;
+		if (mapArray[g_sChar.m_cLocation.X + 1][g_sChar.m_cLocation.Y] != (char)178)
+		{
+			g_sChar.m_cLocation.X++;
+			bSomethingHappened = true;
+		}
     }
-    if (g_abKeyPressed[K_SPACE])
+    if (g_abKeyPressed[K_SPACE] && !useEchoLocation && !countdownStarted)
     {
-        g_sChar.m_bActive = !g_sChar.m_bActive;
+		useEchoLocation = true;
+		timer = (int)g_dElapsedTime;
+		playerLocationX = g_sChar.m_cLocation.X;
+		playerLocationY = g_sChar.m_cLocation.Y;
+		radiusX = 20;
+		radiusY = 10;
         bSomethingHappened = true;
     }
 
@@ -214,26 +238,158 @@ void renderSplashScreen()  // renders the splash screen
 
 void renderGame()
 {
-    renderMap();        // renders the map to the buffer first
+	renderMap();        // renders the map to the buffer first
     renderCharacter();  // renders the character into the buffer
 }
 
 void renderMap()
 {
-    // Set up sample colours, and output shadings
-    const WORD colors[] = {
-        0x1A, 0x2B, 0x3C, 0x4D, 0x5E, 0x6F,
-        0xA1, 0xB2, 0xC3, 0xD4, 0xE5, 0xF6
-    };
+	if (countdownStarted)
+	{
+		if (g_dElapsedTime > timer) 
+		{
+			countdownStarted = false;
+		}
+	}
 
-    COORD c;
-    for (int i = 0; i < 12; ++i)
-    {
-        c.X = 5 * i;
-        c.Y = i + 1;
-        colour(colors[i]);
-        g_Console.writeToBuffer(c, " °±²Û", colors[i]);
-    }
+	COORD c;
+	//----------------THIS IS THE COLOUR CODES----------------
+	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08;
+
+	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
+	char walls = 178, floors = 176, stair = 'X';
+
+	//----------------THIS IS TO SET THE SIZE OF MAZE----------------
+	int x = 43, y = 23;
+	if (!renderMapAlready) {
+
+		bool spawnPoint = false;
+
+		//----------------THIS USES TIME AS A FACTOR IN THE RAND----------------
+		srand(time(NULL));
+
+		//----------------THE LOOP FOR THE OUTER RING AND MAKES UP THE SIZE OF THE MAZE----------------
+		for (int j = 0; j <= y; j++)
+		{
+			//----------------THE LOOP INNER MAZE----------------
+			for (int i = 0; i <= x; i++)
+			{
+				if (j == 0 || j == y)
+				{
+					//----------------THIS COUTS THE OUTER RING AS WELL----------------
+					mapArray[i][j] = walls;
+				}
+				else
+				{
+					if (i == 0 || i == x)
+					{
+						//----------------THIS COUTS THE OUTER RING AS WELL----------------
+						mapArray[i][j] = walls;
+					}
+					else
+					{
+						/*----------------THIS IS WHERE THE JUICY PART OF THE MAZE COMES IN----------------
+						----------------USING RAND % 100 MAKES ALL THE NUMBER GENERATED LESS THAN 100----------------*/
+						if (rand() % 100 > 65)
+						{
+							//----------------THIS GIVES THE FACTOR OF RANDOMNESS AND CREATES A MAZE----------------
+							if (rand() % 100 < 5 && !spawnPoint)
+							{
+								//----------------THIS SETS THE SPAWN POINT----------------
+								mapArray[i][j] = stair;
+								XlocationX = i;
+								XlocationY = j;
+								spawnPoint = true;
+							}
+							else
+							{
+								//----------------THIS SETS THE WALLS----------------
+								mapArray[i][j] = walls;
+							}
+						}
+						else
+						{
+							//----------------THIS SETS THE EMPTY SPACES----------------
+							mapArray[i][j] = floors;
+						}
+
+					}
+				}
+			}
+		}
+		mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y] = floors;
+		renderMapAlready = true;
+	}
+
+	for (int j = 0; j <= y; j++)
+	{
+		c.Y = j;
+		for (int i = 0; i <= x; i++)
+		{
+			c.X = i;
+			if(mapArray[i][j] == stair)
+				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+			else
+				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+
+
+		}
+	}
+
+	//---------------------THE ECHO LOCATION VISION---------------------
+	if (useEchoLocation) {
+
+		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
+		{
+			if (radiusY >= 9) {
+				c.X = XlocationX;
+				c.Y = XlocationY;
+				g_Console.writeToBuffer(c, mapArray[XlocationX][XlocationY]);
+			}
+
+			c.Y = i;
+			for (int j = playerLocationX + radiusX; j >= playerLocationX - radiusX; j--)
+			{
+				c.X = j;
+
+				if (mapArray[j][i] == floors)
+					g_Console.writeToBuffer(c, mapArray[j][i], echoedFloor);
+
+			}
+		}
+
+
+		if (g_dElapsedTime > timer + 1)
+		{
+			timer = (int)g_dElapsedTime;
+			radiusX--;
+			radiusY--;
+		}
+
+		if (radiusY <= -1)
+		{
+			useEchoLocation = false;
+			countdownStarted = true;
+		}
+	}
+
+	//---------------------THE 3 X 3 VISION---------------------
+	for (int i = g_sChar.m_cLocation.Y + 1; i >= g_sChar.m_cLocation.Y - 1; i--)
+	{
+		c.Y = i;
+		for (int j = g_sChar.m_cLocation.X + 1; j >= g_sChar.m_cLocation.X - 1; j--)
+		{
+			c.X = j;
+			if (mapArray[j][i] == floors)
+				g_Console.writeToBuffer(c, mapArray[j][i], floorColor);
+
+			else if (mapArray[j][i] == stair)
+				g_Console.writeToBuffer(c, mapArray[j][i]);
+
+			else if (mapArray[j][i] == walls)
+				g_Console.writeToBuffer(c, mapArray[j][i], wallColor);
+		}
+	}
 }
 
 void renderCharacter()
