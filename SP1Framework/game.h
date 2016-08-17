@@ -6,6 +6,7 @@
 extern CStopWatch g_swTimer;
 extern bool g_bQuitGame;
 
+
 // Enumeration to store the control keys that your game will have
 enum EKEYS
 {
@@ -15,7 +16,8 @@ enum EKEYS
     K_RIGHT,
     K_ESCAPE,
     K_SPACE,
-    K_COUNT
+    K_COUNT, 
+	K_ENTER
 };
 
 // Enumeration for the different screen states

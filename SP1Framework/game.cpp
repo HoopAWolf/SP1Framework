@@ -6,19 +6,20 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
+#include "MapGenerator.h"
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
 
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
-bool renderMapAlready, useEchoLocation = false, countdownStarted = false;
+bool useEchoLocation = false, countdownStarted = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, XlocationX, XlocationY, playerLocationX, playerLocationY, radiusX, radiusY;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY;
 
-//----------------SET ARRAY FOR THE MAP----------------
-char mapArray[45][45] = { '0', };
+// MAP GENERATOR OBJECT
+MapGenerator mapgenerator;
 
 // Game specific variables here
 SGameChar   g_sChar;
@@ -27,6 +28,8 @@ double  g_dBounceTime; // this is to prevent key bouncing, so we won't trigger k
 
 // Console object
 Console g_Console(100, 25, "Deep Sleep - By Team Insomnia");
+
+
 
 //--------------------------------------------------------------
 // Purpose  : Initialisation function
@@ -47,7 +50,6 @@ void init( void )
     g_sChar.m_cLocation.X = g_Console.getConsoleSize().X - 60;
     g_sChar.m_cLocation.Y = (g_Console.getConsoleSize().Y / 2) + 5;
     g_sChar.m_bActive = true;
-	renderMapAlready = false;
 	useEchoLocation = false;
     // sets the width, height and the font name to use in the console
     g_Console.setConsoleFont(0, 16, L"Consolas");
@@ -87,6 +89,7 @@ void getInput( void )
     g_abKeyPressed[K_RIGHT]  = isKeyPressed(VK_RIGHT);
     g_abKeyPressed[K_SPACE]  = isKeyPressed(VK_SPACE);
     g_abKeyPressed[K_ESCAPE] = isKeyPressed(VK_ESCAPE);
+	g_abKeyPressed[K_ENTER] = isKeyPressed(VK_RETURN);
 }
 
 //--------------------------------------------------------------
@@ -135,13 +138,13 @@ void render()
         case S_GAME: renderGame();
             break;
     }
-    renderFramerate();  // renders debug information, frame rate, elapsed time, etc
+   // renderFramerate();  // renders debug information, frame rate, elapsed time, etc
     renderToScreen();   // dump the contents of the buffer to the screen, one frame worth of game
 }
 
 void splashScreenWait()    // waits for time to pass in splash screen
 {
-    if (g_dElapsedTime > 3.0) // wait for 3 seconds to switch to game mode, else do nothing
+	if (g_abKeyPressed[K_ENTER]) // PRESS ENTER TO START GAME
         g_eGameState = S_GAME;
 }
 
@@ -163,9 +166,8 @@ void moveCharacter()
     if (g_abKeyPressed[K_UP] && g_sChar.m_cLocation.Y > 0)
     {
         //Beep(1440, 30);
-		if (mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y - 1] != (char)178)
+		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != (char)178)
 		{
-
 			g_sChar.m_cLocation.Y--;
 			bSomethingHappened = true;
 		}
@@ -173,7 +175,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
     {
         //Beep(1440, 30);
-		if (mapArray[g_sChar.m_cLocation.X - 1] [g_sChar.m_cLocation.Y] != (char)178)
+		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X--;
 			bSomethingHappened = true;
@@ -183,7 +185,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_DOWN] && g_sChar.m_cLocation.Y < g_Console.getConsoleSize().Y - 1)
     {
         //Beep(1440, 30);
-		if (mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y + 1] != (char)178)
+		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != (char)178)
 		{
 			g_sChar.m_cLocation.Y++;
 			bSomethingHappened = true;
@@ -192,7 +194,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
     {
         //Beep(1440, 30);
-		if (mapArray[g_sChar.m_cLocation.X + 1][g_sChar.m_cLocation.Y] != (char)178)
+		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X++;
 			bSomethingHappened = true;
@@ -211,8 +213,8 @@ void moveCharacter()
 		playerLocationY = g_sChar.m_cLocation.Y;
 
 		//----------------SETTING RADIUS FOR ECHO LOCATION----------------
-		radiusX = 20;
-		radiusY = 10;
+		radiusX = 16;
+		radiusY = 8;
         bSomethingHappened = true;
     }
 
@@ -237,16 +239,34 @@ void clearScreen()
 
 void renderSplashScreen()  // renders the splash screen
 {
-    COORD c = g_Console.getConsoleSize();
-    c.Y /= 3;
-    c.X = c.X / 2 - 9;
-    g_Console.writeToBuffer(c, "A game in 3 seconds", 0x03);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 20;
-    g_Console.writeToBuffer(c, "Press <Space> to change character colour", 0x09);
-    c.Y += 1;
-    c.X = g_Console.getConsoleSize().X / 2 - 9;
-    g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x09);
+	COORD c = g_Console.getConsoleSize();
+	c.Y /= 3;
+	c.X = g_Console.getConsoleSize().X / 2 - 30;
+
+	g_Console.writeToBuffer(c, " ______                        ______ _                    ", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "(______)                      / _____) |                   ", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, " _     _ _____ _____ ____    ( (____ | | _____ _____ ____  ", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "| |   | | ___ | ___ |  _ \\    \\____ \\| || ___ | ___ |  _ \\ ", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "| |__/ /| ____| ____| |_| |   _____) ) || ____| ____| |_| )", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "|_____/ |_____)_____)  __/   (______/ \\_)_____)_____)  __/ ", 0x03);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "                    |_|                             |_|    ", 0x03);
+
+
+	c.Y += 2;
+	c.X = g_Console.getConsoleSize().X / 2 - 10;
+	g_Console.writeToBuffer(c, "Welcome to Deep Sleep!", 0x03);
+	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 13;
+	g_Console.writeToBuffer(c, "Press <Enter> to start game", 0x09);
+	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 15;
+	g_Console.writeToBuffer(c, "Press 'Esc' to quit once in-game", 0x09);
 }
 
 void renderGame()
@@ -275,68 +295,21 @@ void renderMap()
 
 	//----------------THIS IS TO SET THE SIZE OF MAZE----------------
 	int x = 43, y = 23;
-	if (!renderMapAlready) {
 
-		bool spawnPoint = false;
+	mapgenerator.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
 
-		//----------------THIS USES TIME AS A FACTOR IN THE RAND----------------
-		srand(time(NULL));
-
-		//----------------THE LOOP FOR THE OUTER RING AND MAKES UP THE SIZE OF THE MAZE----------------
-		for (int j = 0; j <= y; j++)
+	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
+	for (int j = 0; j < y; j++)
+	{
+		c.Y = j;
+		for (int i = 0; i < x; i++)
 		{
-			//----------------THE LOOP INNER MAZE----------------
-			for (int i = 0; i <= x; i++)
-			{
-				if (j == 0 || j == y)
-				{
-					//----------------THIS COUTS THE OUTER RING AS WELL----------------
-					mapArray[i][j] = walls;
-				}
-				else
-				{
-					if (i == 0 || i == x)
-					{
-						//----------------THIS COUTS THE OUTER RING AS WELL----------------
-						mapArray[i][j] = walls;
-					}
-					else
-					{
-						/*----------------THIS IS WHERE THE JUICY PART OF THE MAZE COMES IN----------------
-						----------------USING RAND % 100 MAKES ALL THE NUMBER GENERATED LESS THAN 100----------------*/
-						if (rand() % 100 > 65)
-						{
-							//----------------THIS GIVES THE FACTOR OF RANDOMNESS AND CREATES A MAZE----------------
-							if (rand() % 100 < 5 && !spawnPoint)
-							{
-								//----------------THIS SETS THE END POINT----------------
-								mapArray[i][j] = stair;
-
-								//----------------SAVE LOCATION OF END POINT----------------
-								XlocationX = i;
-								XlocationY = j;
-								spawnPoint = true;
-							}
-							else
-							{
-								//----------------THIS SETS THE WALLS----------------
-								mapArray[i][j] = walls;
-							}
-						}
-						else
-						{
-							//----------------THIS SETS THE EMPTY SPACES----------------
-							mapArray[i][j] = floors;
-						}
-
-					}
-				}
-			}
+			c.X = i;
+			//----------------SETTING MAP TO TOTAL DARKNESSSSSS----------------
+			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(x, y), blackColor);
 		}
-		//----------------SETTING PLAYER LOCATION TO FLOOR SO IT WILL NOT STUCK IN WALL OR DIE A TERRIBU DEATHFU----------------
-		mapArray[g_sChar.m_cLocation.X][g_sChar.m_cLocation.Y] = floors;
-		renderMapAlready = true;
 	}
+
 
 	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
 	for (int j = 0; j <= y; j++)
@@ -346,7 +319,7 @@ void renderMap()
 		{
 			c.X = i;
 			//----------------SETTING MAP TO TOTAL DARKNESSSSSS----------------
-			g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(x, y), blackColor);
 
 
 		}
@@ -357,11 +330,11 @@ void renderMap()
 
 		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
 		{
-			if (radiusY >= 9) {
+			if (radiusY >= 6) {
 				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
-				c.X = XlocationX;
-				c.Y = XlocationY;
-				g_Console.writeToBuffer(c, mapArray[XlocationX][XlocationY]);
+				c.X = mapgenerator.getStairLocationX();
+				c.Y = mapgenerator.getStairLocationY();
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(mapgenerator.getStairLocationX(), mapgenerator.getStairLocationY()));
 			}
 
 			c.Y = i;
@@ -369,8 +342,8 @@ void renderMap()
 			{
 				c.X = j;
 				//----------------MAKING FLOORS VISIBLE----------------
-				if (mapArray[j][i] == floors)
-					g_Console.writeToBuffer(c, mapArray[j][i], echoedFloor);
+				if (mapgenerator.getArrayCharacter(j, i) == floors)
+					g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), echoedFloor);
 
 			}
 		}
@@ -379,7 +352,7 @@ void renderMap()
 		if (g_dElapsedTime > timer + 1)
 		{
 			timer = (int)g_dElapsedTime;
-			radiusX--;
+			radiusX -= 2;
 			radiusY--;
 		}
 
@@ -395,19 +368,28 @@ void renderMap()
 	for (int i = g_sChar.m_cLocation.Y + 1; i >= g_sChar.m_cLocation.Y - 1; i--)
 	{
 		c.Y = i;
-		for (int j = g_sChar.m_cLocation.X + 1; j >= g_sChar.m_cLocation.X - 1; j--)
+		for (int j = g_sChar.m_cLocation.X + 2; j >= g_sChar.m_cLocation.X - 2; j--)
 		{
 			c.X = j;
 			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS----------------
-			if (mapArray[j][i] == floors)
-				g_Console.writeToBuffer(c, mapArray[j][i], floorColor);
+			if (mapgenerator.getArrayCharacter(j, i) == floors)
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), floorColor);
 
-			else if (mapArray[j][i] == stair)
-				g_Console.writeToBuffer(c, mapArray[j][i]);
+			else if (mapgenerator.getArrayCharacter(j, i) == stair)
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i));
 
-			else if (mapArray[j][i] == walls)
-				g_Console.writeToBuffer(c, mapArray[j][i], wallColor);
+			else if (mapgenerator.getArrayCharacter(j, i) == walls)
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), wallColor);
 		}
+	}
+
+	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL---------------------
+	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == stair)
+	{
+		g_dBounceTime = g_dElapsedTime + 0.125;
+		mapgenerator.setBackToDefault(false, true);
+		mapgenerator.increaseDifficulty();
+		mapgenerator.setRenderMapAlready(false);
 	}
 }
 
