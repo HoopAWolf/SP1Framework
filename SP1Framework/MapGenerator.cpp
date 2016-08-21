@@ -10,7 +10,6 @@ bool renderMapAlready = false;
 
 short XlocationX = 0, XlocationY = 0,
 	hardness = 95 /*THE HIGHER THE HARDNESS, THE EASIER IT IS*/, chanceForGoal = 5, 
-	minRand = 5, maxRand = 7, 
 	FloorNo = 0;
 
 Entity entityEnemy;
@@ -67,29 +66,29 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 										if (i < (mazeSizeX / 2) && j < (mazeSizeY / 2)
 											&& PlayerX < (mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
 										{
-											XlocationX = i + (minRand + (rand() % (int)(maxRand - minRand + 1)));
-											XlocationY = j + (minRand + (rand() % (int)(maxRand - minRand + 1)));
+											XlocationX = i + (rand() % 10) + 1;
+											XlocationY = j + (rand() % 10) + 1;
 
 										}
 										else if (i < (mazeSizeX / 2) && j >(mazeSizeY / 2)
 											&& PlayerX < (mazeSizeX / 2) && PlayerY >(mazeSizeY / 2))
 										{
-											XlocationX = i + (minRand + (rand() % (int)(maxRand - minRand + 1)));
-											XlocationY = j - (minRand + (rand() % (int)(maxRand - minRand + 1)));
+											XlocationX = i + (rand() % 10) + 1;
+											XlocationY = j - (rand() % 10) + 1;
 
 										}
 										else if (i > (mazeSizeX / 2) && j < (mazeSizeY / 2)
 											&& PlayerX >(mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
 										{
-											XlocationX = i - (minRand + (rand() % (int)(maxRand - minRand + 1)));
-											XlocationY = j + (minRand + (rand() % (int)(maxRand - minRand + 1)));
+											XlocationX = i - (rand() % 10) + 1;
+											XlocationY = j + (rand() % 10) + 1;
 
 										}
 										else if (i > (mazeSizeX / 2) && j > (mazeSizeY / 2)
 											&& PlayerX > (mazeSizeX / 2) && PlayerY > (mazeSizeY / 2))
 										{
-											XlocationX = i - (minRand + (rand() % (int)(maxRand - minRand + 1)));
-											XlocationY = j - (minRand + (rand() % (int)(maxRand - minRand + 1)));
+											XlocationX = i - (rand() % 10) + 1;
+											XlocationY = j - (rand() % 10) + 1;
 
 										}
 										else
@@ -220,7 +219,7 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 		allEnemyPosition.clear();
 		allEnemytimer.clear();
 
-		int radiusSpawnX = (1 + (rand() % (int)(3 - 1 + 1))), radiusSpawnY = (1 + (rand() % (int)(3 - 1 + 1)));
+		int radiusSpawnX = (rand() % 4) + 1, radiusSpawnY = (rand() % 4) + 1;
 
 		for (int y = -radiusSpawnY; y <= radiusSpawnY; y++)
 		{
