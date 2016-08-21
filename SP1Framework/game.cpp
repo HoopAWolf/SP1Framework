@@ -343,21 +343,6 @@ void renderMap()
 
 	mapgenerator.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mazeSizeX, mazeSizeY, g_dElapsedTime);
 
-	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
-	for (int j = 0; j < mazeSizeY; j++)
-	{
-
-		c.Y = j;
-		for (int i = 0; i < mazeSizeX; i++)
-		{
-			c.X = i;
-
-
-			//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
-			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(i, j), mapgenerator.blackColor);
-		}
-	}
-
 	//---------------------THE ECHO LOCATION VISION---------------------
 	if (useEchoLocation) {
 

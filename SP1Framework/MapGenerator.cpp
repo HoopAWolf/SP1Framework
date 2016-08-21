@@ -5,6 +5,7 @@
 COORD coord;
 
 char mapArray[45][45] = { '0',};
+extern Console g_Console;
 
 bool renderMapAlready = false;
 
@@ -148,6 +149,19 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 			moveAI(PlayerX, PlayerY, elapsedTimer);
 
 		mapArray[XlocationX][XlocationY] = stair;
+
+		//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
+		for (int j = 0; j < mazeSizeY; j++)
+		{
+			c.Y = j;
+			for (int i = 0; i < mazeSizeX; i++)
+			{
+				c.X = i;
+
+				//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
+				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+			}
+		}
 	}
 
 }
