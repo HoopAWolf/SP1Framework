@@ -7,19 +7,29 @@
 #include <iomanip>
 #include <sstream>
 #include "MapGenerator.h"
+#include "Entity.h"
+#include "Inventory.h"
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
 
+
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
-bool useEchoLocation = false, countdownStarted = false;
+bool useEchoLocation = false, countdownStarted = false, clearItemsAlready = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, playerLocationX, playerLocationY, radiusX, radiusY;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0;
 
 // MAP GENERATOR OBJECT
 MapGenerator mapgenerator;
+//ENTITY OPJECT
+Entity entity;
+//INVENTORY OPJECT
+Inventory inventory;
+
+COORD c;
+WORD color = 0x0F;
 
 // Game specific variables here
 SGameChar   g_sChar;
@@ -90,6 +100,7 @@ void getInput( void )
     g_abKeyPressed[K_SPACE]  = isKeyPressed(VK_SPACE);
     g_abKeyPressed[K_ESCAPE] = isKeyPressed(VK_ESCAPE);
 	g_abKeyPressed[K_ENTER] = isKeyPressed(VK_RETURN);
+	//g_abKeyPressed[K_0] = isKeyPressed(VK_NUMPAD0);
 }
 
 //--------------------------------------------------------------
@@ -118,6 +129,8 @@ void update(double dt)
             break;
         case S_GAME: gameplay(); // gameplay logic when we are in the game
             break;
+		case S_GAMEOVER: renderGameOver(); // -----renders the game over stuff-----
+			break;
     }
 }
 //--------------------------------------------------------------
@@ -137,6 +150,8 @@ void render()
             break;
         case S_GAME: renderGame();
             break;
+		case S_GAMEOVER: renderGameOver();
+			break;
     }
    // renderFramerate();  // renders debug information, frame rate, elapsed time, etc
     renderToScreen();   // dump the contents of the buffer to the screen, one frame worth of game
@@ -170,6 +185,7 @@ void moveCharacter()
 		{
 			g_sChar.m_cLocation.Y--;
 			bSomethingHappened = true;
+			facing = 0;
 		}
     }
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
@@ -179,6 +195,7 @@ void moveCharacter()
 		{
 			g_sChar.m_cLocation.X--;
 			bSomethingHappened = true;
+			facing = 2;
 		}
     }
 
@@ -189,6 +206,7 @@ void moveCharacter()
 		{
 			g_sChar.m_cLocation.Y++;
 			bSomethingHappened = true;
+			facing = 1;
 		}
     }
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
@@ -198,6 +216,7 @@ void moveCharacter()
 		{
 			g_sChar.m_cLocation.X++;
 			bSomethingHappened = true;
+			facing = 3;
 		}
     }
     if (g_abKeyPressed[K_SPACE] && !useEchoLocation && !countdownStarted)
@@ -218,6 +237,24 @@ void moveCharacter()
         bSomethingHappened = true;
     }
 
+	if (isKeyPressed('A'))
+	{
+		if (inventory.getInventoryItem(0) != "-")
+		{
+			inventory.mineWall(facing, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+			bSomethingHappened = true;
+		}
+	}
+
+	if (isKeyPressed('S'))
+	{
+		if (inventory.getInventoryItem(1) != "-")
+		{
+			inventory.useExplosion(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+			bSomethingHappened = true;
+		}
+	}
+
     if (bSomethingHappened)
     {
         // set the bounce time to some time in the future to prevent accidental triggers
@@ -234,7 +271,7 @@ void processUserInput()
 void clearScreen()
 {
     // Clears the buffer with this colour attribute
-    g_Console.clearBuffer(0x1F);
+	g_Console.clearBuffer(0x00);
 }
 
 void renderSplashScreen()  // renders the splash screen
@@ -273,10 +310,23 @@ void renderGame()
 {
 	renderMap();        // renders the map to the buffer first
     renderCharacter();  // renders the character into the buffer
+	renderFramerate();
+	renderFloorNumber();
+	renderHealthbar();
+	renderInventory();
 }
 
 void renderMap()
 {
+
+	//----------------SETTING ITEMS(TEMPORARY HERE FOR NOW)----------------
+	if (!clearItemsAlready)
+	{
+		inventory.clearInventory();
+		inventory.setInventory(true, true);
+		clearItemsAlready = true;
+	}
+
 	//----------------STARTS COUNTDOWN WHEN COUNTDOWNSTARTED == TRUE----------------
 	if (countdownStarted)
 	{
@@ -287,41 +337,24 @@ void renderMap()
 	}
 
 	COORD c;
-	//----------------THIS IS THE COLOUR CODES----------------
-	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08;
-
-	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
-	char walls = 178, floors = 176, stair = 'X';
 
 	//----------------THIS IS TO SET THE SIZE OF MAZE----------------
-	int x = 43, y = 23;
+	int mazeSizeX = 43, mazeSizeY = 23;
 
-	mapgenerator.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
-
-	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
-	for (int j = 0; j < y; j++)
-	{
-		c.Y = j;
-		for (int i = 0; i < x; i++)
-		{
-			c.X = i;
-			//----------------SETTING MAP TO TOTAL DARKNESSSSSS----------------
-			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(x, y), blackColor);
-		}
-	}
-
+	mapgenerator.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mazeSizeX, mazeSizeY, g_dElapsedTime);
 
 	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
-	for (int j = 0; j <= y; j++)
+	for (int j = 0; j < mazeSizeY; j++)
 	{
+
 		c.Y = j;
-		for (int i = 0; i <= x; i++)
+		for (int i = 0; i < mazeSizeX; i++)
 		{
 			c.X = i;
-			//----------------SETTING MAP TO TOTAL DARKNESSSSSS----------------
-			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(x, y), blackColor);
 
 
+			//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
+			g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(i, j), mapgenerator.blackColor);
 		}
 	}
 
@@ -330,7 +363,7 @@ void renderMap()
 
 		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
 		{
-			if (radiusY >= 6) {
+			if (radiusY >= 7) {
 				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
 				c.X = mapgenerator.getStairLocationX();
 				c.Y = mapgenerator.getStairLocationY();
@@ -341,10 +374,13 @@ void renderMap()
 			for (int j = playerLocationX + radiusX; j >= playerLocationX - radiusX; j--)
 			{
 				c.X = j;
-				//----------------MAKING FLOORS VISIBLE----------------
-				if (mapgenerator.getArrayCharacter(j, i) == floors)
-					g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), echoedFloor);
+				//----------------MAKING FLOORS AND ENEMIES VISIBLE----------------
 
+				if (j < 43/* MAKING THE ECHO NOT DETECT OUTSIDE THE BOUNDARY */){
+					if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.floors)
+						g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.echoedFloor);
+					
+				}
 			}
 		}
 
@@ -371,37 +407,49 @@ void renderMap()
 		for (int j = g_sChar.m_cLocation.X + 2; j >= g_sChar.m_cLocation.X - 2; j--)
 		{
 			c.X = j;
-			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS----------------
-			if (mapgenerator.getArrayCharacter(j, i) == floors)
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), floorColor);
+			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
+			if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.floors)
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.floorColor);
 
-			else if (mapgenerator.getArrayCharacter(j, i) == stair)
+			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.stair)
 				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i));
 
-			else if (mapgenerator.getArrayCharacter(j, i) == walls)
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), wallColor);
+			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.walls)
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.wallColor);
+
+			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.enemy)
+			{
+				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.enemyColor);
+			}
 		}
 	}
 
-	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL---------------------
-	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == stair)
+	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
+	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapgenerator.stair || isKeyPressed('C'))
 	{
-		g_dBounceTime = g_dElapsedTime + 0.125;
-		mapgenerator.setBackToDefault(false, true);
+		mapgenerator.setBackToDefault(false, true, false, true);
 		mapgenerator.increaseDifficulty();
+		useEchoLocation = false;
 		mapgenerator.setRenderMapAlready(false);
+		g_dElapsedTime = 0;
+		g_dBounceTime = 0;
 	}
+
+	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
+	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapgenerator.enemy)
+		entity.damagePlayer(1);
+
+	//---------------------SHOW GAME OVER SCREEN WHEN TIME RUNS OUT OR HEALTH IS ZERO---------------------
+	if (entity.getPlayerHealth() <= 0 || isTimeOver())
+		g_eGameState = S_GAMEOVER;
 }
 
 void renderCharacter()
 {
     // Draw the location of the character
-    WORD charColor = 0x0C;
-    if (g_sChar.m_bActive)
-    {
-        charColor = 0x0A;
-    }
-    g_Console.writeToBuffer(g_sChar.m_cLocation, (char)1, charColor);
+    WORD charColor = 0x0A;
+
+	g_Console.writeToBuffer(g_sChar.m_cLocation, mapgenerator.player, charColor); //CHARACTER STUFF
 }
 
 void renderFramerate()
@@ -409,21 +457,126 @@ void renderFramerate()
     COORD c;
     // displays the framerate
     std::ostringstream ss;
-    ss << std::fixed << std::setprecision(3);
-    ss << 1.0 / g_dDeltaTime << "fps";
-    c.X = g_Console.getConsoleSize().X - 9;
-    c.Y = 0;
-    g_Console.writeToBuffer(c, ss.str());
+    //ss << std::fixed << std::setprecision(3);
+    //ss << 1.0 / g_dDeltaTime << "fps";
+    //c.X = g_Console.getConsoleSize().X - 9;
+    //c.Y = 0;
+    //g_Console.writeToBuffer(c, ss.str());
 
     // displays the elapsed time
     ss.str("");
-    ss << g_dElapsedTime << "secs";
-    c.X = 0;
+    ss << (timeAttack - (int)g_dElapsedTime) << " secs left!";
+	c.X = (g_Console.getConsoleSize().X / 2) - 5;
     c.Y = 0;
-    g_Console.writeToBuffer(c, ss.str(), 0x59);
+
+	//---------------------FLASH RED WHEN LESS THAN 10 SECONDS LEFT---------------------
+	if ((timeAttack - (int)g_dElapsedTime) < 10)
+	{
+		if (timerDanger == 0)
+			timerDanger = (int)g_dElapsedTime;
+
+		if (g_dElapsedTime > timerDanger + 1)
+		{
+			switch (danger)
+			{
+			case 0:
+				danger = 1;
+				//---------------------SET RED---------------------
+				color = 0x0C;
+				timerDanger = (int)g_dElapsedTime;
+				break;
+			case 1:
+				danger = 0;
+				//---------------------SET WHITE---------------------
+				color = 0x0F;
+				timerDanger = (int)g_dElapsedTime;
+				break;
+			default:
+				break;
+			}
+		}
+	}
+
+    g_Console.writeToBuffer(c, ss.str(), color);
 }
+
+//----------------RENDER GAME OVER----------------
+void renderGameOver()
+{
+	g_Console.writeToBuffer(0, 0, "deaded", 0x0A/* green color */);
+
+}
+
+//---------------------RENDER FLOOR NUMBER ONTO SCREEN---------------------
+void renderFloorNumber()
+{
+	COORD c;
+	std::ostringstream ss;
+	c.X = (g_Console.getConsoleSize().X / 2) - 3;
+	c.Y = 1;
+	ss << mapgenerator.getFloorLevel() << " Floor";
+	g_Console.writeToBuffer(c, ss.str());
+}
+
 void renderToScreen()
 {
     // Writes the buffer to the console, hence you will see what you have written
     g_Console.flushBufferToConsole();
+}
+
+//----------------RENDER HEALTH BAR----------------
+void renderHealthbar()
+{
+
+	std::ostringstream HPcout;
+	string HPBar;
+	c.Y = 8;
+	c.X = 50;
+
+	//---------------------PRINT HEALTH---------------------
+	for (int i = 0; i < 20; i++)
+	{
+		if (i == 0)
+			HPBar += "[";
+
+		if (i < entity.getPlayerHealth())
+			HPBar += mapgenerator.walls;
+		else
+			HPBar += "-";
+
+		if (i == 19)
+			HPBar += "]";
+	}
+
+	g_Console.writeToBuffer(c, HPBar, 0x0C/* red color */);
+
+	HPcout << "Health: " << entity.getPlayerHealth() << "/20";
+
+	c.Y += 1;
+	g_Console.writeToBuffer(c, HPcout.str(), 0x0A/* green color */);
+
+}
+
+//----------------RENDER INVENTORY----------------
+void renderInventory()
+{
+
+	c.Y = 11;
+	c.X = 50;
+
+	g_Console.writeToBuffer(c, "Inventory: ", 0x0A/* green color */);
+	c.Y++;
+
+	for (int i = 0; i < inventory.getInventorySize(); i++)
+	{
+		g_Console.writeToBuffer(c, inventory.getInventoryItem(i), 0x0A/* green color */);
+		c.Y++;
+	}
+
+}
+
+//---------------------CHECK IF TIME LEFT IS 0---------------------
+bool isTimeOver()
+{
+	return (((timeAttack - ((int)g_dElapsedTime)) <= 0) ? true : false);
 }
