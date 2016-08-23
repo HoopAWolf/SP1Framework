@@ -11,10 +11,12 @@ bool renderMapAlready = false;
 
 short XlocationX = 0, XlocationY = 0,
 	hardness = 95 /*THE HIGHER THE HARDNESS, THE EASIER IT IS*/, chanceForGoal = 5, 
-	FloorNo = 0;
+	FloorNo = 0, 
+	timer;
 
-Entity entityEnemy;
-Inventory inven;
+MapGenerator mapGen;
+extern Entity entityBase;
+extern Inventory inven;
 
 void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, short mazeSizeY, double elapsedTimer)
 {
@@ -23,6 +25,8 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 
 	if (!renderMapAlready) {
 
+		allEnemyPosition.clear();
+		allEnemytimer.clear();
 		bool spawnPoint = false;
 
 		//----------------THIS USES TIME AS A FACTOR IN THE RAND----------------
@@ -62,34 +66,33 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 								}
 								else
 								{
-									if (i != PlayerX && j != PlayerY)
-									{
+								
 										if (i < (mazeSizeX / 2) && j < (mazeSizeY / 2)
 											&& PlayerX < (mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
 										{
-											XlocationX = i + (rand() % 10) + 1;
-											XlocationY = j + (rand() % 10) + 1;
+											XlocationX = i + (rand() % 20) + 5;
+											XlocationY = j + (rand() % 20) + 5;
 
 										}
 										else if (i < (mazeSizeX / 2) && j >(mazeSizeY / 2)
 											&& PlayerX < (mazeSizeX / 2) && PlayerY >(mazeSizeY / 2))
 										{
-											XlocationX = i + (rand() % 10) + 1;
-											XlocationY = j - (rand() % 10) + 1;
+											XlocationX = i + (rand() % 20) + 5;
+											XlocationY = j - (rand() % 20) + 5;
 
 										}
 										else if (i > (mazeSizeX / 2) && j < (mazeSizeY / 2)
 											&& PlayerX >(mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
 										{
-											XlocationX = i - (rand() % 10) + 1;
-											XlocationY = j + (rand() % 10) + 1;
+											XlocationX = i - (rand() % 20) + 5;
+											XlocationY = j + (rand() % 20) + 5;
 
 										}
 										else if (i > (mazeSizeX / 2) && j > (mazeSizeY / 2)
 											&& PlayerX > (mazeSizeX / 2) && PlayerY > (mazeSizeY / 2))
 										{
-											XlocationX = i - (rand() % 10) + 1;
-											XlocationY = j - (rand() % 10) + 1;
+											XlocationX = i - (rand() % 20) + 5;
+											XlocationY = j - (rand() % 20) + 5;
 
 										}
 										else
@@ -98,7 +101,6 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 											XlocationY = j;
 										}
 									}
-								}
 								//----------------MAKE SURE TO NOT SPAWN END POINT OUTSIDE OF MAZE----------------
 								if (XlocationX > 0 && XlocationX < 43 && XlocationY > 0 && XlocationY < 23)
 								{
@@ -133,6 +135,8 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 		mapArray[PlayerX][PlayerY] = floors;
 		FloorNo++;
 
+		if (getFloorLevel() > 15)
+			inven.setInventoryBombCount(((getFloorLevel() > 18) ? (getFloorLevel() > 24 ? 3 : 2) : 1));
 
 		//----------------GENERATE ENEMY----------------
 		if (hardness < 80)
@@ -145,6 +149,10 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 
 	if (renderMapAlready)
 	{
+		inven.clearInventory();
+		if (getFloorLevel() > 10)
+			inven.setInventory(((getFloorLevel() > 10) ? true : false), ((getFloorLevel() > 15) ? true : false), ((getFloorLevel() > 19) ? true : false));
+
 		if(allEnemyPosition.size() != 0)
 			moveAI(PlayerX, PlayerY, elapsedTimer);
 
@@ -159,7 +167,8 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 				c.X = i;
 
 				//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
-				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+				if (mapArray[i][j] != bomb)
+					g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
 			}
 		}
 	}
@@ -191,7 +200,7 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 	}
 
 	//----------------RESET HARDNESS LEVEL OR GOAL CHANCE SPAWNING(FOR GENERATING MAP AGAIN)----------------
-	void MapGenerator::setBackToDefault(bool hardnessLevel, bool goalChanceSpawning, bool resetFloor, bool resetStair)
+	void MapGenerator::setBackToDefault(bool hardnessLevel, bool goalChanceSpawning, bool resetFloor, bool resetStair, bool resetLevel)
 	{
 		if(hardnessLevel)
 			hardness = 95;
@@ -204,6 +213,9 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 
 		if (resetStair)
 			mapArray[XlocationX][XlocationY] = floors;
+
+		if (resetLevel)
+			renderMapAlready = false;
 	}
 
 	//----------------INCREASE DIFFICULTY AS LEVEL PROGRESSES----------------

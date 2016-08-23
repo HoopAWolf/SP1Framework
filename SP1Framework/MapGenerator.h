@@ -13,10 +13,10 @@ class MapGenerator {
 public:
 
 	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
-	char walls = 178, floors = 176, stair = 'X', enemy = 'A', player = '#';
+	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64;
 
 	//----------------THIS IS THE COLOUR CODES----------------
-	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0A;
+	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C;
 
 	//----------------ALL ENEMY CURRENT POSITIONS----------------
 	vector<COORD> allEnemyPosition;
@@ -33,7 +33,7 @@ public:
 	//----------------GENERATE MAP ONCE----------------
 	void setRenderMapAlready(bool boolean);
 	//----------------RESET HARDNESS LEVEL OR GOAL CHANCE SPAWNING(FOR GENERATING MAP AGAIN)----------------
-	void setBackToDefault(bool hardnessLevel, bool goalChanceSpawning, bool resetFloor, bool resetStair);
+	void setBackToDefault(bool hardnessLevel, bool goalChanceSpawning, bool resetFloor, bool resetStair, bool resetLevel);
 	//----------------INCREASE DIFFICULTY AS LEVEL PROGRESSES----------------
 	void increaseDifficulty();
 

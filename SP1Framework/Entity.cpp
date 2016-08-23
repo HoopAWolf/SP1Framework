@@ -15,7 +15,7 @@ void Entity::startEntityEnemy()
 
 void Entity::startEntityPlayer()
 {
-	entityBase.PlayerBase.Playerhealth = 3;
+	entityBase.PlayerBase.Playerhealth = 20;
 	entityBase.PlayerBase.Playerspeed = 1;
 
 }

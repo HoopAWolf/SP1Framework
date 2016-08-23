@@ -44,6 +44,7 @@ void shutdown    ( void );      // do clean up, free memory
 
 void splashScreenWait();    // waits for time to pass in splash screen
 void gameplay();            // gameplay logic
+void gameOver(); // gameover logic
 void moveCharacter();       // moves the character, collision detection, physics, etc
 void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
 void clearScreen();         // clears the current screen and draw from scratch 
@@ -58,6 +59,9 @@ void renderToScreen();      // dump the contents of the buffer to the screen, on
 void renderFloorNumber(); //----------------RENDER FLOOR LEVEL----------------
 void renderHealthbar(); //----------------RENDER HEALTH BAR----------------
 void renderInventory(); //----------------RENDER INVENTORY----------------
+void renderHelp(); //----------------RENDER HELP BAR----------------
+
+void processUserInputEndScreen();
 bool isTimeOver(); //----------------COUNT DOWN TIMER----------------
 
 #endif // _GAME_H

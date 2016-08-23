@@ -16,17 +16,17 @@ bool    g_abKeyPressed[K_COUNT];
 
 
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
-bool useEchoLocation = false, countdownStarted = false, clearItemsAlready = false;
+bool useEchoLocation = false, countdownStarted = false, startGame = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0;
 
 // MAP GENERATOR OBJECT
-MapGenerator mapgenerator;
+extern MapGenerator mapGen;
 //ENTITY OPJECT
-Entity entity;
+extern Entity entityBase;
 //INVENTORY OPJECT
-Inventory inventory;
+extern Inventory inven;
 
 COORD c;
 WORD color = 0x0F;
@@ -129,7 +129,7 @@ void update(double dt)
             break;
         case S_GAME: gameplay(); // gameplay logic when we are in the game
             break;
-		case S_GAMEOVER: renderGameOver(); // -----renders the game over stuff-----
+		case S_GAMEOVER: gameOver(); // -----renders the game over stuff-----
 			break;
     }
 }
@@ -170,6 +170,11 @@ void gameplay()            // gameplay logic
                         // sound can be played here too.
 }
 
+void gameOver()
+{
+	processUserInputEndScreen();
+}
+
 void moveCharacter()
 {
     bool bSomethingHappened = false;
@@ -181,7 +186,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_UP] && g_sChar.m_cLocation.Y > 0)
     {
         //Beep(1440, 30);
-		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != (char)178)
+		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != (char)178)
 		{
 			g_sChar.m_cLocation.Y--;
 			bSomethingHappened = true;
@@ -191,7 +196,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
     {
         //Beep(1440, 30);
-		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != (char)178)
+		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X--;
 			bSomethingHappened = true;
@@ -202,7 +207,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_DOWN] && g_sChar.m_cLocation.Y < g_Console.getConsoleSize().Y - 1)
     {
         //Beep(1440, 30);
-		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != (char)178)
+		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != (char)178)
 		{
 			g_sChar.m_cLocation.Y++;
 			bSomethingHappened = true;
@@ -212,7 +217,7 @@ void moveCharacter()
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
     {
         //Beep(1440, 30);
-		if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != (char)178)
+		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X++;
 			bSomethingHappened = true;
@@ -239,19 +244,34 @@ void moveCharacter()
 
 	if (isKeyPressed('A'))
 	{
-		if (inventory.getInventoryItem(0) != "-")
+		//------------CHECK FOR ITEM AND RICKAXE COOLDOWN------------
+		if (inven.getInventoryItem(0) != "-" && inven.getRickAxeCoolDown() <= 0)
 		{
-			inventory.mineWall(facing, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+			//------------MINE WALL------------
+			inven.mineWall(facing, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+			//------------RESET RICKAXE COOLDOWN------------
+			inven.startRickAxeCoolDown();
 			bSomethingHappened = true;
 		}
 	}
 
 	if (isKeyPressed('S'))
 	{
-		if (inventory.getInventoryItem(1) != "-")
+		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB AND BOMB COOLDOWN------------
+		if (inven.getInventoryItem(1) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && inven.getBombCoolDown() <= 0)
 		{
-			inventory.useExplosion(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
-			bSomethingHappened = true;
+			//------------IF PLAYER HAVE MORE THAN ONE BOMB------------
+			if (inven.getBombCount() > 0){
+				//------------REPLACE MAP ELEMENT WITH BOMB------------
+				mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.bomb);
+				//------------RESET BOMB COUNTDOWN------------
+				inven.resetBombCountDown();
+				//------------RESET BOMB COOLDOWN------------
+				inven.startBombCoolDown();
+				//------------DECREASE BOMB QUANTITY------------
+				inven.decreaseBombCount();
+				bSomethingHappened = true;
+			}
 		}
 	}
 
@@ -268,6 +288,21 @@ void processUserInput()
         g_bQuitGame = true;    
 }
 
+void processUserInputEndScreen()
+{
+	// quits the game if player hits the escape key
+	if (g_abKeyPressed[K_ESCAPE])
+		g_bQuitGame = true;
+
+	if (isKeyPressed('R'))
+	{
+		g_eGameState = S_SPLASHSCREEN;
+		startGame = false;
+		mapGen.setBackToDefault(true, true, true, true, true);
+		useEchoLocation = false;
+	}
+}
+
 void clearScreen()
 {
     // Clears the buffer with this colour attribute
@@ -276,22 +311,30 @@ void clearScreen()
 
 void renderSplashScreen()  // renders the splash screen
 {
+	srand(time(NULL));
 	COORD c = g_Console.getConsoleSize();
 	c.Y /= 3;
 	c.X = g_Console.getConsoleSize().X / 2 - 30;
 
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, " ______                        ______ _                    ", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, "(______)                      / _____) |                   ", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, " _     _ _____ _____ ____    ( (____ | | _____ _____ ____  ", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, "| |   | | ___ | ___ |  _ \\    \\____ \\| || ___ | ___ |  _ \\ ", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, "| |__/ /| ____| ____| |_| |   _____) ) || ____| ____| |_| )", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, "|_____/ |_____)_____)  __/   (______/ \\_)_____)_____)  __/ ", 0x03);
 	c.Y += 1;
+	if (rand() % 100 < 50)
 	g_Console.writeToBuffer(c, "                    |_|                             |_|    ", 0x03);
 
 
@@ -314,17 +357,19 @@ void renderGame()
 	renderFloorNumber();
 	renderHealthbar();
 	renderInventory();
+	renderHelp();
 }
 
 void renderMap()
 {
 
 	//----------------SETTING ITEMS(TEMPORARY HERE FOR NOW)----------------
-	if (!clearItemsAlready)
+	if (!startGame)
 	{
-		inventory.clearInventory();
-		inventory.setInventory(true, true);
-		clearItemsAlready = true;
+		g_dElapsedTime = 0;
+		g_dBounceTime = 0;
+		entityBase.startEntityPlayer();
+		startGame = true;
 	}
 
 	//----------------STARTS COUNTDOWN WHEN COUNTDOWNSTARTED == TRUE----------------
@@ -341,7 +386,7 @@ void renderMap()
 	//----------------THIS IS TO SET THE SIZE OF MAZE----------------
 	int mazeSizeX = 43, mazeSizeY = 23;
 
-	mapgenerator.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mazeSizeX, mazeSizeY, g_dElapsedTime);
+	mapGen.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mazeSizeX, mazeSizeY, g_dElapsedTime);
 
 	//---------------------THE ECHO LOCATION VISION---------------------
 	if (useEchoLocation) {
@@ -350,9 +395,9 @@ void renderMap()
 		{
 			if (radiusY >= 7) {
 				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
-				c.X = mapgenerator.getStairLocationX();
-				c.Y = mapgenerator.getStairLocationY();
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(mapgenerator.getStairLocationX(), mapgenerator.getStairLocationY()));
+				c.X = mapGen.getStairLocationX();
+				c.Y = mapGen.getStairLocationY();
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(mapGen.getStairLocationX(), mapGen.getStairLocationY()));
 			}
 
 			c.Y = i;
@@ -362,8 +407,8 @@ void renderMap()
 				//----------------MAKING FLOORS AND ENEMIES VISIBLE----------------
 
 				if (j < 43/* MAKING THE ECHO NOT DETECT OUTSIDE THE BOUNDARY */){
-					if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.floors)
-						g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.echoedFloor);
+					if (mapGen.getArrayCharacter(j, i) == mapGen.floors)
+						g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.echoedFloor);
 					
 				}
 			}
@@ -393,39 +438,92 @@ void renderMap()
 		{
 			c.X = j;
 			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
-			if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.floors)
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.floorColor);
+			if (mapGen.getArrayCharacter(j, i) == mapGen.floors)
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.floorColor);
 
-			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.stair)
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i));
+			else if (mapGen.getArrayCharacter(j, i) == mapGen.stair)
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i));
 
-			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.walls)
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.wallColor);
+			else if (mapGen.getArrayCharacter(j, i) == mapGen.walls)
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.wallColor);
 
-			else if (mapgenerator.getArrayCharacter(j, i) == mapgenerator.enemy)
+			else if (mapGen.getArrayCharacter(j, i) == mapGen.enemy)
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.enemyColor);
+			
+			//----------------SETTING BOMB COUNTDOWN----------------
+			if (mapGen.getArrayCharacter(j, i) == mapGen.bomb && inven.getBombCountDown() > 0)
 			{
-				g_Console.writeToBuffer(c, mapgenerator.getArrayCharacter(j, i), mapgenerator.enemyColor);
+				if (timerBomb == 0)
+					timerBomb = g_dElapsedTime + 1;
+
+				if (g_dElapsedTime > timerBomb)
+				{
+					//------------DECREASE BOMB COUNT DOWN------------
+					inven.decreaseBombCountDown();
+
+				}
+
+				if (inven.getBombCountDown() <= 0)
+				{
+					//----------------EXPLODE WHEN BOMB REACHES 0----------------
+					inven.useExplosion(j, i);
+					mapGen.replaceMapCharacterXY(j, i, mapGen.floors);
+				}
+
+				//----------------MAKE THE BOMB FLASH AND EXPLODE----------------
+				if (timerBomb % 2 == 0)
+					g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), 0x0C/*red*/);
+				else
+					g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), 0x0A/*green*/);
 			}
 		}
 	}
 
-	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
-	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapgenerator.stair || isKeyPressed('C'))
+	//----------------COOLDOWN OF THE BOMB----------------
+	if (inven.getBombCoolDown() > 0)
 	{
-		mapgenerator.setBackToDefault(false, true, false, true);
-		mapgenerator.increaseDifficulty();
+
+		if (g_dElapsedTime > timerBomb)
+		{
+			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
+			inven.decreaseBombCoolDown();
+		}
+		timerBomb = g_dElapsedTime + 1;
+	}
+
+	//----------------COOLDOWN OF THE RICKAXE----------------
+	if (inven.getRickAxeCoolDown() > 0)
+	{
+		if (timerRickAxe == 0)
+			timerRickAxe = g_dElapsedTime + 1;
+
+		if (g_dElapsedTime > timerRickAxe)
+		{
+			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
+			inven.decreaseRickAxeCoolDown();
+		}
+		timerRickAxe = g_dElapsedTime + 1;
+	}
+
+	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
+	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.stair || isKeyPressed('C'))
+	{
+		mapGen.setBackToDefault(false, true, false, true, false);
+		mapGen.increaseDifficulty();
 		useEchoLocation = false;
-		mapgenerator.setRenderMapAlready(false);
+		mapGen.setRenderMapAlready(false);
+		inven.resetBombCoolDown();
+		inven.resetRickAxeCoolDown();
 		g_dElapsedTime = 0;
 		g_dBounceTime = 0;
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
-	if (mapgenerator.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapgenerator.enemy)
-		entity.damagePlayer(1);
+	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.enemy)
+		entityBase.damagePlayer(1);
 
 	//---------------------SHOW GAME OVER SCREEN WHEN TIME RUNS OUT OR HEALTH IS ZERO---------------------
-	if (entity.getPlayerHealth() <= 0 || isTimeOver())
+	if (entityBase.getPlayerHealth() <= 0 || isTimeOver())
 		g_eGameState = S_GAMEOVER;
 }
 
@@ -434,7 +532,7 @@ void renderCharacter()
     // Draw the location of the character
     WORD charColor = 0x0A;
 
-	g_Console.writeToBuffer(g_sChar.m_cLocation, mapgenerator.player, charColor); //CHARACTER STUFF
+	g_Console.writeToBuffer(g_sChar.m_cLocation, mapGen.player, charColor); //CHARACTER STUFF
 }
 
 void renderFramerate()
@@ -480,6 +578,10 @@ void renderFramerate()
 				break;
 			}
 		}
+	} 
+	else
+	{
+		color = 0x0F;
 	}
 
     g_Console.writeToBuffer(c, ss.str(), color);
@@ -488,7 +590,29 @@ void renderFramerate()
 //----------------RENDER GAME OVER----------------
 void renderGameOver()
 {
-	g_Console.writeToBuffer(0, 0, "deaded", 0x0A/* green color */);
+	COORD c = g_Console.getConsoleSize();
+	c.Y /= 3;
+	c.X = g_Console.getConsoleSize().X / 2 - 32;
+
+	g_Console.writeToBuffer(c, "  ________                        ________                     ", 0x0A);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, " /  _____/_____    _____   ____   \\_____  \\___  __ ___________ ", 0x0A);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "/   \\  ___\\__  \\  /     \\_/ __ \\   /   |   \\  \\/ // __ \\_  __ \\", 0x0A);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "\\    \\_\\  \\/ __ \\|  Y Y  \\  ___/  /    |    \\   /\\  ___/|  | \\/", 0x0A);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, " \\______  (____  /__|_|  /\\___  > \\_______  /\\_/  \\___  >__|   ", 0x0A);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "        \\/     \\/      \\/     \\/          \\/          \\/       ", 0x0A);
+	c.Y += 3;
+	g_Console.writeToBuffer(c, "==========================YOU DIEDED!=========================", 0x0A/* green color */);
+	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 13;
+	g_Console.writeToBuffer(c, "Press <R> to start game", 0x0A);
+	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 11;
+	g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0A);
 
 }
 
@@ -499,7 +623,7 @@ void renderFloorNumber()
 	std::ostringstream ss;
 	c.X = (g_Console.getConsoleSize().X / 2) - 3;
 	c.Y = 1;
-	ss << mapgenerator.getFloorLevel() << " Floor";
+	ss << mapGen.getFloorLevel() << " Floor";
 	g_Console.writeToBuffer(c, ss.str());
 }
 
@@ -522,12 +646,12 @@ void renderHealthbar()
 	for (int i = 0; i < 20; i++)
 	{
 		if (i == 0)
-			HPBar += "[";
+			HPBar += "["; 
 
-		if (i < entity.getPlayerHealth())
-			HPBar += mapgenerator.walls;
+		if (i < entityBase.getPlayerHealth())
+			HPBar += mapGen.walls; //------------PRINT BAR FOR HEALTH------------
 		else
-			HPBar += "-";
+			HPBar += "-"; //------------PRINT '-' FOR MISSING HEALTH------------
 
 		if (i == 19)
 			HPBar += "]";
@@ -535,7 +659,7 @@ void renderHealthbar()
 
 	g_Console.writeToBuffer(c, HPBar, 0x0C/* red color */);
 
-	HPcout << "Health: " << entity.getPlayerHealth() << "/20";
+	HPcout << "Health: " << entityBase.getPlayerHealth() << "/20";
 
 	c.Y += 1;
 	g_Console.writeToBuffer(c, HPcout.str(), 0x0A/* green color */);
@@ -552,12 +676,39 @@ void renderInventory()
 	g_Console.writeToBuffer(c, "Inventory: ", 0x0A/* green color */);
 	c.Y++;
 
-	for (int i = 0; i < inventory.getInventorySize(); i++)
+	for (int i = 0; i < inven.getInventorySize(); i++)
 	{
-		g_Console.writeToBuffer(c, inventory.getInventoryItem(i), 0x0A/* green color */);
+		//------------RENDER WORDS RED IF COOLDOWN IS STILL ON------------
+		if (i == 1 && inven.getBombCoolDown() > 0 || i == 0 && inven.getRickAxeCoolDown() > 0)
+			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0C/* red color */);
+		else
+			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0A/* green color */);
 		c.Y++;
 	}
+	g_Console.writeToBuffer(c, "<Press [Space] to use Echo Location>", 0x0D/* pink color */);
 
+}
+
+//------------RENDER GUIDE LINE TO HELP PLAYER------------
+void renderHelp()
+{
+	c.Y = 0;
+	c.X = 79;
+	g_Console.writeToBuffer(c, "Enemy: ", 0x0D/* pink color */);
+	c.X += 8;
+	g_Console.writeToBuffer(c, mapGen.enemy, 0x0C/* red color */);
+
+	c.Y += 1;
+	c.X = 80;
+	g_Console.writeToBuffer(c, "Bomb: ", 0x0D/* pink color */);
+	c.X += 7;
+	g_Console.writeToBuffer(c, mapGen.bomb, 0x0C/* red color */);
+
+	c.Y += 1;
+	c.X = 75;
+	g_Console.writeToBuffer(c, "Objective: ", 0x0D/* pink color */);
+	c.X += 12;
+	g_Console.writeToBuffer(c, mapGen.stair);
 }
 
 //---------------------CHECK IF TIME LEFT IS 0---------------------
