@@ -1,3 +1,6 @@
+#ifndef _MAPGENERATOR_H
+#define _MAPGENERATOR_H
+
 #include "game.h"
 #include "Framework\console.h"
 #include <iostream>
@@ -6,17 +9,17 @@
 #include <vector>
 
 
-using namespace std;
+using  std::vector;
 
 class MapGenerator {
 
 public:
 
 	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
-	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64;
+	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64, torch = 'I', bombDrop = 'B', ammoDrop = 'R';
 
 	//----------------THIS IS THE COLOUR CODES----------------
-	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C;
+	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C, torchColor = 0x0D, itemDropColor = 0x0D;
 
 	//----------------ALL ENEMY CURRENT POSITIONS----------------
 	vector<COORD> allEnemyPosition;
@@ -57,3 +60,4 @@ public:
 };	
 
 
+#endif

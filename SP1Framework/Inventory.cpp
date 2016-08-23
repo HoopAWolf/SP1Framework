@@ -20,6 +20,18 @@ void Inventory::setInventoryBombCount(short i)
 	InventoryStorage.bombCount = i;
 }
 
+//------------SET THE LASER RIFLE AMMO QUANTITY------------
+void Inventory::setInventoryLaserRifleAmmountCount(short i)
+{
+	InventoryStorage.shotsLeft = i;
+}
+
+//------------SET THE TORCH QUANTITY------------
+void Inventory::setInventoryTorchCount(short i)
+{
+	InventoryStorage.torchCount = i;
+}
+
 //------------MINE WALLS TAKING DIRECTION AND POSITION AS PARAMETER------------
 void Inventory::mineWall(short i, short charPosX, short charPosY)
 {
@@ -79,30 +91,38 @@ void Inventory::clearInventory()
 }
 
 //------------SET INVENTORY------------
-void Inventory::setInventory(bool setRickAxe, bool setBomb, bool setRifle)
+void Inventory::setInventory(bool setRickAxe, bool setBomb, bool setRifle, bool setTorch)
 {
-	string str;
+	std::ostringstream str, str2, str3;
 
 	if (getInventorySize() > 0)
 	{
 		if (setRickAxe)
-			InventoryStorage.InventorySlot[0] = " - RickAxe [A]";
+			InventoryStorage.InventorySlot[0] = " - Motivational Wall Breaker [A]";
 
 		if (setBomb)
 		{
-			str = " - Mind Bomb [S] x";
+			str << " - Binary Bomb [S] Ammount Left: ";
 
 			//------------SET THE COUNT OF BOMBS------------
-			str += ((char)InventoryStorage.bombCount + 48);
-			InventoryStorage.InventorySlot[1] = str;
+			str << InventoryStorage.bombCount;
+			InventoryStorage.InventorySlot[1] = str.str();
 		}
 
 		if (setRifle)
 		{
-			str =  " - Laser Rifle [D] Shots Left: ";
+			str2 << " - Recursive Rifle [D] Shots Left: ";
 			//------------SET THE COUNT OF AMMO------------
-			str += ((char)InventoryStorage.shotsLeft + 48);
-			InventoryStorage.InventorySlot[2] = str;
+			str2 << InventoryStorage.shotsLeft;
+			InventoryStorage.InventorySlot[2] = str2.str();
+		}
+
+		if (setTorch)
+		{
+			str3 << " - Debugger Torch [F] Ammount Left: ";
+			//------------SET THE COUNT OF TORCH------------
+			str3 << InventoryStorage.torchCount;
+			InventoryStorage.InventorySlot[3] = str3.str();
 		}
 	}
 }
@@ -159,6 +179,12 @@ void Inventory::decreaseRickAxeCoolDown()
 	InventoryStorage.rickAxeCoolDown--;
 }
 
+//------------DECREASE LASER RIFLE COOLDOWN BY 1------------
+void Inventory::decreaseLaserRifleCoolDown()
+{
+	InventoryStorage.laserRifleCoolDown--;
+}
+
 
 //------------START BOMB COOLDOWN------------
 void Inventory::startBombCoolDown()
@@ -171,6 +197,13 @@ void Inventory::startRickAxeCoolDown()
 {
 	InventoryStorage.rickAxeCoolDown = 5;
 }
+
+//------------START LASER RIFLE COOLDOWN------------
+void Inventory::startLaserRifleCoolDown()
+{
+	InventoryStorage.laserRifleCoolDown = 1;
+}
+
 
 
 //------------RETURNS BOMB COOLDOWN------------
@@ -185,6 +218,11 @@ short Inventory::getRickAxeCoolDown()
 	return InventoryStorage.rickAxeCoolDown;
 }
 
+//------------RETURNS LASER RIFLE COOLDOWN------------
+short Inventory::getLaserRifleCoolDown()
+{
+	return InventoryStorage.laserRifleCoolDown;
+}
 
 //------------RESET BOMB COOLDOWN------------
 void Inventory::resetBombCoolDown()
@@ -196,4 +234,34 @@ void Inventory::resetBombCoolDown()
 void Inventory::resetRickAxeCoolDown()
 {
 	InventoryStorage.rickAxeCoolDown = 0;
+}
+
+//------------RESET LASER RIFLE COOLDOWN------------
+void Inventory::resetLaserRifleCoolDown()
+{
+	InventoryStorage.laserRifleCoolDown = 0;
+}
+
+//------------RETURNS TORCH QUANTITY------------
+short Inventory::getTorchCount()
+{
+	return InventoryStorage.torchCount;
+}
+
+//------------RETURNS LASER RIFLE AMMO QUANTITY------------
+short Inventory::getLaserRifleAmmoCount()
+{
+	return InventoryStorage.shotsLeft;
+}
+
+//------------DECREASE TORCH QUANTITY BY 1------------
+void Inventory::decreaseTorchCount()
+{
+	InventoryStorage.torchCount--;
+}
+
+//------------DECREASE LASER RIFLE AMMO QUANTITY BY 1------------
+void Inventory::decreaseLaserRifleAmmoCount()
+{
+	InventoryStorage.shotsLeft--;
 }

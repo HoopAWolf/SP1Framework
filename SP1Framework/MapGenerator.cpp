@@ -1,6 +1,7 @@
 #include "MapGenerator.h"
 #include "Entity.h"
 #include "Inventory.h"
+#include "Curse.h"
 
 COORD coord;
 
@@ -17,6 +18,7 @@ short XlocationX = 0, XlocationY = 0,
 MapGenerator mapGen;
 extern Entity entityBase;
 extern Inventory inven;
+extern Curse curse;
 
 void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, short mazeSizeY, double elapsedTimer)
 {
@@ -136,7 +138,14 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 		FloorNo++;
 
 		if (getFloorLevel() > 15)
-			inven.setInventoryBombCount(((getFloorLevel() > 18) ? (getFloorLevel() > 24 ? 3 : 2) : 1));
+		{
+			inven.setInventoryBombCount(((getFloorLevel() > 20) ? inven.getBombCount() + 2 : inven.getBombCount() + 1));
+			inven.setInventoryLaserRifleAmmountCount(((getFloorLevel() > 25) ? inven.getLaserRifleAmmoCount() + 2 : inven.getLaserRifleAmmoCount() + 1));
+			inven.setInventoryTorchCount(((getFloorLevel() > 23) ? 2 : 1));
+		}
+
+		if (getFloorLevel() > 5)
+			curse.startARandomCurse();
 
 		//----------------GENERATE ENEMY----------------
 		if (hardness < 80)
@@ -150,25 +159,63 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 	if (renderMapAlready)
 	{
 		inven.clearInventory();
-		if (getFloorLevel() > 10)
-			inven.setInventory(((getFloorLevel() > 10) ? true : false), ((getFloorLevel() > 15) ? true : false), ((getFloorLevel() > 19) ? true : false));
+		if (getFloorLevel() > 1)
+			inven.setInventory(((getFloorLevel() > 5) ? true : false), ((getFloorLevel() > 15) ? true : false), ((getFloorLevel() > 19) ? true : false), ((getFloorLevel() > 17) ? true : false));
 
 		if(allEnemyPosition.size() != 0)
 			moveAI(PlayerX, PlayerY, elapsedTimer);
 
 		mapArray[XlocationX][XlocationY] = stair;
+		inven.torchLocation.clear();
 
 		//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
 		for (int j = 0; j < mazeSizeY; j++)
 		{
+			COORD torchCoord;
 			c.Y = j;
 			for (int i = 0; i < mazeSizeX; i++)
 			{
 				c.X = i;
 
 				//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
-				if (mapArray[i][j] != bomb)
+				if (mapArray[i][j] == torch)
+				{
+					g_Console.writeToBuffer(c, mapArray[i][j], torchColor);
+					torchCoord.X = i;
+					torchCoord.Y = j;
+					inven.torchLocation.push_back(torchCoord);
+				}
+				else if (mapArray[i][j] != bomb)
 					g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
+
+			}
+		}
+
+		if (inven.torchLocation.size() > 0)
+		{
+			for (int i = 0; i < inven.torchLocation.size(); i++)
+			{
+				COORD torchCoord;
+				for (int y = inven.torchLocation[i].Y - 2; y <= inven.torchLocation[i].Y + 2; y++)
+				{
+					torchCoord.Y = y;
+					for (int x = inven.torchLocation[i].X - 4; x <= inven.torchLocation[i].X + 4; x++)
+					{
+						torchCoord.X = x;
+						//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
+						if (mapGen.getArrayCharacter(x, y) == mapGen.floors)
+							g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y), mapGen.floorColor);
+
+						else if (mapGen.getArrayCharacter(x, y) == mapGen.stair)
+							g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y));
+
+						else if (mapGen.getArrayCharacter(x, y) == mapGen.walls)
+							g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y), mapGen.wallColor);
+
+						else if (mapGen.getArrayCharacter(x, y) == mapGen.enemy)
+							g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y), mapGen.enemyColor);
+					}
+				}
 			}
 		}
 	}
@@ -290,10 +337,10 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 
 			int entityUpdatedLocationX = allEnemyPosition[j].X, entityUpdatedLocationY = allEnemyPosition[j].Y;
 
-			//----------------CHECK RADIUS OF 20 X 16----------------
-			for (int y = allEnemyPosition[j].Y - 8; y <= allEnemyPosition[j].Y + 8; y++)
+			//----------------CHECK RADIUS OF 10 X 8----------------
+			for (int y = allEnemyPosition[j].Y - 4; y <= allEnemyPosition[j].Y + 4; y++)
 			{
-				for (int x = allEnemyPosition[j].X - 10; x <= allEnemyPosition[j].X + 10; x++)
+				for (int x = allEnemyPosition[j].X - 5; x <= allEnemyPosition[j].X + 5; x++)
 				{
 					if (x == playerLocationX && y == playerLocationY)
 					{

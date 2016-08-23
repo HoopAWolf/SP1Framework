@@ -9,6 +9,7 @@
 #include "MapGenerator.h"
 #include "Entity.h"
 #include "Inventory.h"
+#include "Curse.h"
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
@@ -19,7 +20,7 @@ bool    g_abKeyPressed[K_COUNT];
 bool useEchoLocation = false, countdownStarted = false, startGame = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0, timerLaserRifle = 0;
 
 // MAP GENERATOR OBJECT
 extern MapGenerator mapGen;
@@ -27,6 +28,8 @@ extern MapGenerator mapGen;
 extern Entity entityBase;
 //INVENTORY OPJECT
 extern Inventory inven;
+//CURSE OPJECT
+extern Curse curse;
 
 COORD c;
 WORD color = 0x0F;
@@ -185,43 +188,43 @@ void moveCharacter()
     // providing a beep sound whenver we shift the character
     if (g_abKeyPressed[K_UP] && g_sChar.m_cLocation.Y > 0)
     {
+		facing = 0;
         //Beep(1440, 30);
 		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != (char)178)
 		{
 			g_sChar.m_cLocation.Y--;
 			bSomethingHappened = true;
-			facing = 0;
 		}
     }
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
     {
+		facing = 2;
         //Beep(1440, 30);
 		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X--;
 			bSomethingHappened = true;
-			facing = 2;
 		}
     }
 
     if (g_abKeyPressed[K_DOWN] && g_sChar.m_cLocation.Y < g_Console.getConsoleSize().Y - 1)
     {
+		facing = 1;
         //Beep(1440, 30);
 		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != (char)178)
 		{
 			g_sChar.m_cLocation.Y++;
 			bSomethingHappened = true;
-			facing = 1;
 		}
     }
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
     {
+		facing = 3;
         //Beep(1440, 30);
 		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != (char)178)
 		{
 			g_sChar.m_cLocation.X++;
 			bSomethingHappened = true;
-			facing = 3;
 		}
     }
     if (g_abKeyPressed[K_SPACE] && !useEchoLocation && !countdownStarted)
@@ -275,6 +278,40 @@ void moveCharacter()
 		}
 	}
 
+	if (isKeyPressed('D'))
+	{
+		//------------CHECK FOR ITEM, IF LOCATION HAS AMMO AND LASER RIFLE COOLDOWN IS DOWN------------
+		if (inven.getInventoryItem(2) != "-" && inven.getLaserRifleCoolDown() <= 0)
+		{
+			//------------IF PLAYER HAVE MORE THAN ONE AMMO SHOT------------
+			if (inven.getLaserRifleAmmoCount() > 0){
+				//------------REPLACE MAP ELEMENT WITH LASER------------
+				//mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.bomb);
+				//------------RESET LASER RIFLE COOLDOWN------------
+				inven.startLaserRifleCoolDown();
+				//------------DECREASE LASER RIFLE QUANTITY------------
+				inven.decreaseLaserRifleAmmoCount();
+				bSomethingHappened = true;
+			}
+		}
+	}
+
+	if (isKeyPressed('F'))
+	{
+		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB OR HAS TORCH------------
+		if (inven.getInventoryItem(3) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.torch)
+		{
+			//------------IF PLAYER HAVE MORE THAN ONE TORCH------------
+			if (inven.getTorchCount() > 0){
+				//------------REPLACE MAP ELEMENT WITH TORCH------------
+				mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.torch);
+				//------------DECREASE TORCH QUANTITY------------
+				inven.decreaseTorchCount();
+				bSomethingHappened = true;
+			}
+		}
+	}
+	
     if (bSomethingHappened)
     {
         // set the bounce time to some time in the future to prevent accidental triggers
@@ -505,6 +542,33 @@ void renderMap()
 		timerRickAxe = g_dElapsedTime + 1;
 	}
 
+	//----------------COOLDOWN OF THE LAZER RIFLE----------------
+	if (inven.getLaserRifleCoolDown() > 0)
+	{
+		if (timerLaserRifle == 0)
+			timerLaserRifle = g_dElapsedTime + 1;
+
+		if (g_dElapsedTime > timerLaserRifle)
+		{
+			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
+			inven.decreaseLaserRifleCoolDown();
+		}
+		timerLaserRifle = g_dElapsedTime + 1;
+	}
+
+	//--------------------------------IF PLAYER PICK UP ITEM--------------------------------------
+	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.bombDrop)
+	{
+		mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.floors);
+		inven.setInventoryBombCount(inven.getBombCount() + 1);
+	}
+
+	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.ammoDrop)
+	{
+		mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.floors);
+		inven.setInventoryLaserRifleAmmountCount(inven.getLaserRifleAmmoCount() + 1);
+	}
+
 	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
 	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.stair || isKeyPressed('C'))
 	{
@@ -514,6 +578,7 @@ void renderMap()
 		mapGen.setRenderMapAlready(false);
 		inven.resetBombCoolDown();
 		inven.resetRickAxeCoolDown();
+		inven.resetLaserRifleCoolDown();
 		g_dElapsedTime = 0;
 		g_dBounceTime = 0;
 	}
@@ -620,11 +685,16 @@ void renderGameOver()
 void renderFloorNumber()
 {
 	COORD c;
-	std::ostringstream ss;
+	std::ostringstream ss, ss2;
 	c.X = (g_Console.getConsoleSize().X / 2) - 3;
 	c.Y = 1;
 	ss << mapGen.getFloorLevel() << " Floor";
 	g_Console.writeToBuffer(c, ss.str());
+
+	c.Y += 5;
+	c.X += 10;
+	ss2 << "[Curse Active: " << curse.getActiveCurseString() << "]";
+	g_Console.writeToBuffer(c, ss2.str(), 0x0E);
 }
 
 void renderToScreen()
@@ -637,8 +707,7 @@ void renderToScreen()
 void renderHealthbar()
 {
 
-	std::ostringstream HPcout;
-	string HPBar;
+	std::ostringstream HPcout, HPBar;
 	c.Y = 8;
 	c.X = 50;
 
@@ -646,21 +715,22 @@ void renderHealthbar()
 	for (int i = 0; i < 20; i++)
 	{
 		if (i == 0)
-			HPBar += "["; 
+			HPBar << "["; 
 
 		if (i < entityBase.getPlayerHealth())
-			HPBar += mapGen.walls; //------------PRINT BAR FOR HEALTH------------
+			HPBar << mapGen.walls; //------------PRINT BAR FOR HEALTH------------
 		else
-			HPBar += "-"; //------------PRINT '-' FOR MISSING HEALTH------------
+			HPBar << "-"; //------------PRINT '-' FOR MISSING HEALTH------------
 
 		if (i == 19)
-			HPBar += "]";
+			HPBar << "]";
 	}
 
-	g_Console.writeToBuffer(c, HPBar, 0x0C/* red color */);
+	g_Console.writeToBuffer(c, HPBar.str(), 0x0C/* red color */);
 
 	HPcout << "Health: " << entityBase.getPlayerHealth() << "/20";
 
+	c.X += 4;
 	c.Y += 1;
 	g_Console.writeToBuffer(c, HPcout.str(), 0x0A/* green color */);
 
@@ -679,7 +749,7 @@ void renderInventory()
 	for (int i = 0; i < inven.getInventorySize(); i++)
 	{
 		//------------RENDER WORDS RED IF COOLDOWN IS STILL ON------------
-		if (i == 1 && inven.getBombCoolDown() > 0 || i == 0 && inven.getRickAxeCoolDown() > 0)
+		if (i == 1 && inven.getBombCoolDown() > 0 || i == 0 && inven.getRickAxeCoolDown() > 0 || i == 2 && inven.getLaserRifleCoolDown() > 0)
 			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0C/* red color */);
 		else
 			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0A/* green color */);
