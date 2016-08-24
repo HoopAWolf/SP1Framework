@@ -135,11 +135,7 @@ int Inventory::getInventorySize()
 }
 
 
-//------------RETURNS BOMB QUANTITY------------
-short Inventory::getBombCount()
-{
-	return InventoryStorage.bombCount;
-}
+
 
 //------------DECREASE BOMB QUANTITY BY 1------------
 void Inventory::decreaseBombCount()
@@ -158,7 +154,6 @@ void Inventory::decreaseBombCountDown()
 {
 	 InventoryStorage.bombCountDown--;
 }
-
 
 //------------RETURN EXPLOSION COUNT DOWN TIME------------
 short Inventory::getBombCountDown()
@@ -224,6 +219,8 @@ short Inventory::getLaserRifleCoolDown()
 	return InventoryStorage.laserRifleCoolDown;
 }
 
+
+
 //------------RESET BOMB COOLDOWN------------
 void Inventory::resetBombCoolDown()
 {
@@ -242,6 +239,8 @@ void Inventory::resetLaserRifleCoolDown()
 	InventoryStorage.laserRifleCoolDown = 0;
 }
 
+
+
 //------------RETURNS TORCH QUANTITY------------
 short Inventory::getTorchCount()
 {
@@ -253,6 +252,13 @@ short Inventory::getLaserRifleAmmoCount()
 {
 	return InventoryStorage.shotsLeft;
 }
+
+//------------RETURNS BOMB QUANTITY------------
+short Inventory::getBombCount()
+{
+	return InventoryStorage.bombCount;
+}
+
 
 //------------DECREASE TORCH QUANTITY BY 1------------
 void Inventory::decreaseTorchCount()

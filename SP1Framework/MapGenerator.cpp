@@ -7,6 +7,7 @@ COORD coord;
 
 char mapArray[45][45] = { '0',};
 extern Console g_Console;
+int bombCountDownTimer = 0;
 
 bool renderMapAlready = false;
 
@@ -122,7 +123,17 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 						{
 							//----------------THIS SETS THE EMPTY SPACES----------------
 							if (mapArray[i][j] != stair)
-								mapArray[i][j] = floors;
+							{
+								if (rand() % 100 < 1 && getFloorLevel() > 17)
+								{
+									if (rand() % 100 > 65)
+										mapArray[i][j] = mapGen.ammoDrop;
+									else
+										mapArray[i][j] = bombDrop;
+								}
+								else
+									mapArray[i][j] = floors;
+							}
 						}
 
 					}
@@ -148,10 +159,12 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 			curse.startARandomCurse();
 
 		//----------------GENERATE ENEMY----------------
-		if (hardness < 80)
+		if (getFloorLevel() > 15)
 		{
 			generateEnemy(XlocationX, XlocationY);
 		}
+
+		bombCountDownTimer = 0;
 
 		renderMapAlready = true;
 	}
@@ -185,7 +198,42 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 					torchCoord.Y = j;
 					inven.torchLocation.push_back(torchCoord);
 				}
-				else if (mapArray[i][j] != bomb)
+				else if (mapArray[i][j] == bomb)
+				{
+					if (bombCountDownTimer == 0)
+						bombCountDownTimer = elapsedTimer;
+
+					//----------------SETTING BOMB COUNTDOWN----------------
+					if (inven.getBombCountDown() > 0)
+					{
+						if (bombCountDownTimer == 0)
+							bombCountDownTimer = elapsedTimer + 1;
+
+						if (elapsedTimer > bombCountDownTimer)
+						{
+							//------------DECREASE BOMB COUNT DOWN------------
+							inven.decreaseBombCountDown();
+
+						}
+
+						if (inven.getBombCountDown() <= 0)
+						{
+							//----------------EXPLODE WHEN BOMB REACHES 0----------------
+							inven.useExplosion(i, j);
+							mapGen.replaceMapCharacterXY(i, j, mapGen.floors);
+						}
+
+						//----------------MAKE THE BOMB FLASH AND EXPLODE----------------
+						if (bombCountDownTimer % 2 == 0)
+							g_Console.writeToBuffer(c, mapGen.getArrayCharacter(i, j), 0x0C/*red*/);
+						else
+							g_Console.writeToBuffer(c, mapGen.getArrayCharacter(i, j), 0x0A/*green*/);
+
+						bombCountDownTimer = elapsedTimer + 1;
+					}
+				}
+
+				else //----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
 					g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
 
 			}
@@ -298,7 +346,7 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 		{
 			for (int x = -radiusSpawnX; x <= radiusSpawnX; x++)
 			{
-				if (rand() % 100 > 65)
+				if (rand() % 100 > ((getFloorLevel() > 18) ? ((getFloorLevel() > 20) ? 65 : 75): 85))
 				{
 					if (y != 0 && x != 0)
 					{

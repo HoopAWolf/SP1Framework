@@ -16,6 +16,7 @@ private:
 
 		vector<string> InventorySlot;
 
+		//---------------------CONTAINS COOLDOWNS, BOMB RADIUS, AMMOUNT OF ITEMS---------------------
 		short rickaxeTimer, bombCount = 0,
 			bombRadius = 2, pickAxeLength = 1, bombCountDown = 0, 
 			bombCoolDown = 0, rickAxeCoolDown = 0, laserRifleCoolDown = 0,
@@ -27,7 +28,7 @@ private:
 public: 
 
 
-
+	//---------------------CONTAINS TORCH LOCATION---------------------
 	vector<COORD> torchLocation;
 
 	//----------------MINE WALL WITH RICKAXE----------------
@@ -50,12 +51,12 @@ public:
 
 	
 
-	//----------------SET BOMB COUNT----------------
-	void setInventoryBombCount(short i);
 	//------------RETURNS BOMB QUANTITY------------
 	short getBombCount();
 	//------------DECREASE BOMB QUANTITY BY 1------------
 	void decreaseBombCount();
+
+
 	//-----------RESET EXPLOSION COUNTDOWN TO 3------------
 	void resetBombCountDown();
 	//------------RETURN EXPLOSION COUNT DOWN TIME------------
@@ -64,23 +65,21 @@ public:
 	void decreaseBombCountDown();
 
 
+	//------------DECREASE RICKAXE COOLDOWN------------
+	void decreaseRickAxeCoolDown();
+	//------------DECREASE LASER RIFLE COOLDOWN------------
+	void decreaseLaserRifleCoolDown();
 	//------------DECREASE BOMB COOLDOWN------------
 	void decreaseBombCoolDown();
+
+
+	//------------RETURNS LASER RIFLE COOLDOWN------------
+	short getLaserRifleCoolDown();
+	//------------RETURNS RICKAXE COOLDOWN------------
+	short getRickAxeCoolDown();
 	//------------RETURNS BOMB COOLDOWN------------
 	short getBombCoolDown();
 
-
-	//------------DECREASE RICKAXE COOLDOWN------------
-	void decreaseRickAxeCoolDown();
-	//------------RETURNS RICKAXE COOLDOWN------------
-	short getRickAxeCoolDown();
-
-	//------------DECREASE LASER RIFLE COOLDOWN------------
-	void decreaseLaserRifleCoolDown();
-	//------------RETURNS LASER RIFLE COOLDOWN------------
-	short getLaserRifleCoolDown();
-	//------------RETURNS AMMO QUANTITY------------
-	short getLaserRifleAmmoCount();
 
 	//------------START BOMB COOLDOWN------------
 	void startBombCoolDown();
@@ -89,8 +88,13 @@ public:
 	//------------START LASER RIFLE COOLDOWN------------
 	void startLaserRifleCoolDown();
 
+
+
 	//------------RETURNS TORCH QUANTITY------------
 	short getTorchCount();
+	//------------RETURNS AMMO QUANTITY------------
+	short getLaserRifleAmmoCount();
+
 
 	//------------RESET BOMB COOLDOWN------------
 	void resetBombCoolDown();
@@ -98,12 +102,21 @@ public:
 	void resetRickAxeCoolDown();
 	//------------RESET LAZER RIFLE COOLDOWN------------
 	void resetLaserRifleCoolDown();
+
+
+
 	//------------SET LAZER RIFLE AMMO------------
 	void setInventoryLaserRifleAmmountCount(short ammount);
 	//------------SET TORCH AMMO------------
 	void setInventoryTorchCount(short ammount);
+	//----------------SET BOMB COUNT----------------
+	void setInventoryBombCount(short i);
 
+
+
+	//---------------------DECREASE TORCH COUNT---------------------
 	void decreaseTorchCount();
+	//---------------------DECREASE LASER RIFLE AMMO---------------------
 	void decreaseLaserRifleAmmoCount();
 };
 

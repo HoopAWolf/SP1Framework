@@ -14,6 +14,7 @@
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
+double timerAIAttack = 0.0;
 
 
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
@@ -65,7 +66,7 @@ void init( void )
     g_sChar.m_bActive = true;
 	useEchoLocation = false;
     // sets the width, height and the font name to use in the console
-    g_Console.setConsoleFont(0, 16, L"Consolas");
+    g_Console.setConsoleFont(0, 40, L"Consolas");
 }
 
 //--------------------------------------------------------------
@@ -103,7 +104,6 @@ void getInput( void )
     g_abKeyPressed[K_SPACE]  = isKeyPressed(VK_SPACE);
     g_abKeyPressed[K_ESCAPE] = isKeyPressed(VK_ESCAPE);
 	g_abKeyPressed[K_ENTER] = isKeyPressed(VK_RETURN);
-	//g_abKeyPressed[K_0] = isKeyPressed(VK_NUMPAD0);
 }
 
 //--------------------------------------------------------------
@@ -486,33 +486,9 @@ void renderMap()
 
 			else if (mapGen.getArrayCharacter(j, i) == mapGen.enemy)
 				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.enemyColor);
-			
-			//----------------SETTING BOMB COUNTDOWN----------------
-			if (mapGen.getArrayCharacter(j, i) == mapGen.bomb && inven.getBombCountDown() > 0)
-			{
-				if (timerBomb == 0)
-					timerBomb = g_dElapsedTime + 1;
 
-				if (g_dElapsedTime > timerBomb)
-				{
-					//------------DECREASE BOMB COUNT DOWN------------
-					inven.decreaseBombCountDown();
-
-				}
-
-				if (inven.getBombCountDown() <= 0)
-				{
-					//----------------EXPLODE WHEN BOMB REACHES 0----------------
-					inven.useExplosion(j, i);
-					mapGen.replaceMapCharacterXY(j, i, mapGen.floors);
-				}
-
-				//----------------MAKE THE BOMB FLASH AND EXPLODE----------------
-				if (timerBomb % 2 == 0)
-					g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), 0x0C/*red*/);
-				else
-					g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), 0x0A/*green*/);
-			}
+			else if (mapGen.getArrayCharacter(j, i) == mapGen.bombDrop || mapGen.getArrayCharacter(j, i) == mapGen.ammoDrop)
+				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.itemDropColor);
 		}
 	}
 
@@ -581,11 +557,25 @@ void renderMap()
 		inven.resetLaserRifleCoolDown();
 		g_dElapsedTime = 0;
 		g_dBounceTime = 0;
+		timerDanger = 0;
+		timerBomb = 0;
+		timerRickAxe = 0;
+		timerLaserRifle = 0;
+		timerAIAttack = 0;
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
 	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.enemy)
-		entityBase.damagePlayer(1);
+	{
+		if(timerAIAttack == 0)
+			timerAIAttack = g_dElapsedTime;
+
+		if (g_dElapsedTime > timerAIAttack + 0.5)
+		{
+			entityBase.damagePlayer(1);
+			timerAIAttack = g_dElapsedTime;
+		}
+	}
 
 	//---------------------SHOW GAME OVER SCREEN WHEN TIME RUNS OUT OR HEALTH IS ZERO---------------------
 	if (entityBase.getPlayerHealth() <= 0 || isTimeOver())
@@ -613,7 +603,7 @@ void renderFramerate()
 
     // displays the elapsed time
     ss.str("");
-    ss << (timeAttack - (int)g_dElapsedTime) << " secs left!";
+    ss << ((timeAttack - (int)g_dElapsedTime)) - ((curse.getActiveCurseShort() == 1) ? 1 : 0) << " secs left!";
 	c.X = (g_Console.getConsoleSize().X / 2) - 5;
     c.Y = 0;
 
@@ -652,6 +642,8 @@ void renderFramerate()
     g_Console.writeToBuffer(c, ss.str(), color);
 }
 
+
+
 //----------------RENDER GAME OVER----------------
 void renderGameOver()
 {
@@ -661,15 +653,15 @@ void renderGameOver()
 
 	g_Console.writeToBuffer(c, "  ________                        ________                     ", 0x0A);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, " /  _____/_____    _____   ____   \\_____  \\___  __ ___________ ", 0x0A);
+	g_Console.writeToBuffer(c, " /  _____/_____    _____   ____   \\_____  \\___  __ ___________ ", 0x0B);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "/   \\  ___\\__  \\  /     \\_/ __ \\   /   |   \\  \\/ // __ \\_  __ \\", 0x0A);
+	g_Console.writeToBuffer(c, "/   \\  ___\\__  \\  /     \\_/ __ \\   /   |   \\  \\/ // __ \\_  __ \\", 0x0C);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "\\    \\_\\  \\/ __ \\|  Y Y  \\  ___/  /    |    \\   /\\  ___/|  | \\/", 0x0A);
+	g_Console.writeToBuffer(c, "\\    \\_\\  \\/ __ \\|  Y Y  \\  ___/  /    |    \\   /\\  ___/|  | \\/", 0x0D);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, " \\______  (____  /__|_|  /\\___  > \\_______  /\\_/  \\___  >__|   ", 0x0A);
+	g_Console.writeToBuffer(c, " \\______  (____  /__|_|  /\\___  > \\_______  /\\_/  \\___  >__|   ", 0x0E);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "        \\/     \\/      \\/     \\/          \\/          \\/       ", 0x0A);
+	g_Console.writeToBuffer(c, "        \\/     \\/      \\/     \\/          \\/          \\/       ", 0x0F);
 	c.Y += 3;
 	g_Console.writeToBuffer(c, "==========================YOU DIEDED!=========================", 0x0A/* green color */);
 	c.Y += 1;
@@ -784,5 +776,5 @@ void renderHelp()
 //---------------------CHECK IF TIME LEFT IS 0---------------------
 bool isTimeOver()
 {
-	return (((timeAttack - ((int)g_dElapsedTime)) <= 0) ? true : false);
+	return (((timeAttack - ((int)g_dElapsedTime)) - ((curse.getActiveCurseShort() == 1) ? 1 : 0) <= 0) ? true : false);
 }
