@@ -49,11 +49,6 @@ public:
 	//----------------GET PLAYER HEALTH----------------
 	int getPlayerHealth();
 
-	//----------------GET ENEMY SPEED----------------
-	int getEnemySpeed();
-	//----------------GET PLAYER SPEED----------------
-	int getPlayerSpeed();
-
 	//----------------DAMAGE PLAYER----------------
 	void damagePlayer(short i);
 };

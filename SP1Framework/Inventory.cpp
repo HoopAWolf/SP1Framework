@@ -1,8 +1,10 @@
 #include "Inventory.h"
 #include "MapGenerator.h"
+#include "Entity.h"
 
 Inventory inven;
 extern MapGenerator mapGen;
+extern Entity entityBase;
 
 //------------GET THE ITEM FROM INVENTORY SLOT------------
 string Inventory::getInventoryItem(int i)
@@ -63,7 +65,7 @@ void Inventory::mineWall(short i, short charPosX, short charPosY)
 }
 
 //------------EXPLODE FROM THE POSITION OF BOMB------------
-void Inventory::useExplosion(short bombPosX, short bombPosY)
+void Inventory::useExplosion(short bombPosX, short bombPosY, int playerX, int playerY)
 {
 	//------------BOMB RADIUS Y------------
 	for (int i = bombPosY - InventoryStorage.bombRadius; i <= bombPosY + InventoryStorage.bombRadius; i++)
@@ -76,6 +78,9 @@ void Inventory::useExplosion(short bombPosX, short bombPosY)
 				//------------BOOM------------
 				if (mapGen.getArrayCharacter(j, i) == mapGen.walls)
 					mapGen.replaceMapCharacterXY(j, i, mapGen.floors);
+
+				if (j == playerX && i == playerY)
+					entityBase.damagePlayer(3);
 			}
 		}
 	}

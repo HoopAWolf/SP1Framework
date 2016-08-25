@@ -9,14 +9,12 @@ COORD enemyCoord;
 void Entity::startEntityEnemy()
 {
 	entityBase.EnemyBase.Enemyhealth = 3;
-	entityBase.EnemyBase.Enemyspeed = 1;
 
 }
 
 void Entity::startEntityPlayer()
 {
 	entityBase.PlayerBase.Playerhealth = 20;
-	entityBase.PlayerBase.Playerspeed = 1;
 
 }
 
@@ -42,19 +40,6 @@ int Entity::getPlayerHealth()
 {
 	return entityBase.PlayerBase.Playerhealth;
 }
-
-
-//----------------GET SPEED OF ENTITIES----------------
-int Entity::getEnemySpeed()
-{
-	return entityBase.EnemyBase.Enemyspeed;
-}
-
-int Entity::getPlayerSpeed()
-{
-	return entityBase.PlayerBase.Playerspeed;
-}
-
 
 //----------------DAMAGE PLAYER----------------
 void Entity::damagePlayer(short damage)

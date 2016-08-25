@@ -35,7 +35,7 @@ public:
 	void mineWall(short i, short charPosX, short charPosY);
 
 	//----------------SET EXPLOSION----------------
-	void useExplosion(short bombPosX, short bombPosY);
+	void useExplosion(short bombPosX, short bombPosY, int playerX, int playerY);
 
 	//----------------CLEAR ALL INVENTORY----------------
 	void clearInventory();

@@ -10,6 +10,10 @@
 #include "Entity.h"
 #include "Inventory.h"
 #include "Curse.h"
+#include <iostream>
+#include <fstream>
+#include "HighScore.h"
+#include "RenderUI.h"
 
 double  g_dElapsedTime;
 double  g_dDeltaTime;
@@ -21,7 +25,7 @@ double timerAIAttack = 0.0;
 bool useEchoLocation = false, countdownStarted = false, startGame = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0, timerLaserRifle = 0;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0, timerLaserRifle = 0, timerHealthEffect = 0;
 
 // MAP GENERATOR OBJECT
 extern MapGenerator mapGen;
@@ -41,7 +45,7 @@ EGAMESTATES g_eGameState = S_SPLASHSCREEN;
 double  g_dBounceTime; // this is to prevent key bouncing, so we won't trigger keypresses more than once
 
 // Console object
-Console g_Console(100, 25, "Deep Sleep - By Team Insomnia");
+Console g_Console(100, 24, "Deep Sleep - By Team Insomnia");
 
 
 
@@ -130,6 +134,8 @@ void update(double dt)
     {
         case S_SPLASHSCREEN : splashScreenWait(); // game logic for the splash screen
             break;
+		case S_INSTRUCTIONSCREEN: instructionScreen(); // game logic for the splash screen
+			break;
         case S_GAME: gameplay(); // gameplay logic when we are in the game
             break;
 		case S_GAMEOVER: gameOver(); // -----renders the game over stuff-----
@@ -151,6 +157,8 @@ void render()
     {
         case S_SPLASHSCREEN: renderSplashScreen();
             break;
+		case S_INSTRUCTIONSCREEN: renderInstructions();
+			break;
         case S_GAME: renderGame();
             break;
 		case S_GAMEOVER: renderGameOver();
@@ -164,6 +172,9 @@ void splashScreenWait()    // waits for time to pass in splash screen
 {
 	if (g_abKeyPressed[K_ENTER]) // PRESS ENTER TO START GAME
         g_eGameState = S_GAME;
+
+	if(isKeyPressed('I'))
+		g_eGameState = S_INSTRUCTIONSCREEN;
 }
 
 void gameplay()            // gameplay logic
@@ -186,45 +197,109 @@ void moveCharacter()
 
     // Updating the location of the character based on the key press
     // providing a beep sound whenver we shift the character
+
+	//------------------- 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT -------------------
     if (g_abKeyPressed[K_UP] && g_sChar.m_cLocation.Y > 0)
     {
-		facing = 0;
         //Beep(1440, 30);
-		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != (char)178)
+		//---------------------CHECK FOR CURSE---------------------
+		if (curse.getActiveCurseShort() == 4 || curse.getActiveCurse2Short() == 4)
 		{
-			g_sChar.m_cLocation.Y--;
-			bSomethingHappened = true;
+			//---------------------GO DOWN IF CURSE IS ACTIVE---------------------
+			facing = 1;
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.Y++;
+				bSomethingHappened = true;
+			}
+		}
+		else
+		{
+			//---------------------GO UP IF NO CURSE---------------------
+			facing = 0;
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.Y--;
+				bSomethingHappened = true;
+			}
 		}
     }
+
     if (g_abKeyPressed[K_LEFT] && g_sChar.m_cLocation.X > 0)
     {
-		facing = 2;
         //Beep(1440, 30);
-		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != (char)178)
+		if (curse.getActiveCurseShort() == 4 || curse.getActiveCurse2Short() == 4)
 		{
-			g_sChar.m_cLocation.X--;
-			bSomethingHappened = true;
+			//---------------------GO RIGHT IF NO CURSE---------------------
+			facing = 3;
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.X++;
+				bSomethingHappened = true;
+			}
+		}
+		else
+		{
+			//---------------------GO LEFT IF NO CURSE---------------------
+			facing = 2;
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.X--;
+				bSomethingHappened = true;
+			}
 		}
     }
 
     if (g_abKeyPressed[K_DOWN] && g_sChar.m_cLocation.Y < g_Console.getConsoleSize().Y - 1)
     {
-		facing = 1;
-        //Beep(1440, 30);
-		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != (char)178)
+
+		if (curse.getActiveCurseShort() == 4 || curse.getActiveCurse2Short() == 4)
 		{
-			g_sChar.m_cLocation.Y++;
-			bSomethingHappened = true;
+			//---------------------GO UP IF NO CURSE---------------------
+			facing = 0;
+			//Beep(1440, 30);
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y - 1) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.Y--;
+				bSomethingHappened = true;
+			}
+		}
+		else
+		{
+			//---------------------GO DOWN IF NO CURSE---------------------
+			facing = 1;
+			//Beep(1440, 30);
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y + 1) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.Y++;
+				bSomethingHappened = true;
+			}
 		}
     }
+
     if (g_abKeyPressed[K_RIGHT] && g_sChar.m_cLocation.X < g_Console.getConsoleSize().X - 1)
     {
-		facing = 3;
-        //Beep(1440, 30);
-		if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != (char)178)
+		if (curse.getActiveCurseShort() == 4 || curse.getActiveCurse2Short() == 4)
 		{
-			g_sChar.m_cLocation.X++;
-			bSomethingHappened = true;
+			//---------------------GO LEFT IF NO CURSE---------------------
+			facing = 2;
+			//Beep(1440, 30);
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X - 1, g_sChar.m_cLocation.Y) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.X--;
+				bSomethingHappened = true;
+			}
+		}
+		else
+		{
+			//---------------------GO RIGHT IF NO CURSE---------------------
+			facing = 3;
+			//Beep(1440, 30);
+			if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X + 1, g_sChar.m_cLocation.Y) != mapGen.walls)
+			{
+				g_sChar.m_cLocation.X++;
+				bSomethingHappened = true;
+			}
 		}
     }
     if (g_abKeyPressed[K_SPACE] && !useEchoLocation && !countdownStarted)
@@ -240,8 +315,8 @@ void moveCharacter()
 		playerLocationY = g_sChar.m_cLocation.Y;
 
 		//----------------SETTING RADIUS FOR ECHO LOCATION----------------
-		radiusX = 16;
-		radiusY = 8;
+		radiusX = 10;
+		radiusY = 5;
         bSomethingHappened = true;
     }
 
@@ -258,7 +333,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('S'))
+	if (isKeyPressed('S') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB AND BOMB COOLDOWN------------
 		if (inven.getInventoryItem(1) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && inven.getBombCoolDown() <= 0)
@@ -278,7 +353,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('D'))
+	if (isKeyPressed('D') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS AMMO AND LASER RIFLE COOLDOWN IS DOWN------------
 		if (inven.getInventoryItem(2) != "-" && inven.getLaserRifleCoolDown() <= 0)
@@ -286,7 +361,7 @@ void moveCharacter()
 			//------------IF PLAYER HAVE MORE THAN ONE AMMO SHOT------------
 			if (inven.getLaserRifleAmmoCount() > 0){
 				//------------REPLACE MAP ELEMENT WITH LASER------------
-				//mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.bomb);
+				mapGen.spawnLazer(facing, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, g_dElapsedTime);
 				//------------RESET LASER RIFLE COOLDOWN------------
 				inven.startLaserRifleCoolDown();
 				//------------DECREASE LASER RIFLE QUANTITY------------
@@ -296,7 +371,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('F'))
+	if (isKeyPressed('F') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB OR HAS TORCH------------
 		if (inven.getInventoryItem(3) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.torch)
@@ -337,7 +412,27 @@ void processUserInputEndScreen()
 		startGame = false;
 		mapGen.setBackToDefault(true, true, true, true, true);
 		useEchoLocation = false;
+		mapGen.setRenderMapAlready(false);
+		curse.resetCurse();
+		inven.resetBombCoolDown();
+		inven.resetRickAxeCoolDown();
+		inven.resetLaserRifleCoolDown();
+		g_dElapsedTime = 0;
+		g_dBounceTime = 0;
+		timerDanger = 0;
+		timerBomb = 0;
+		timerRickAxe = 0;
+		timerLaserRifle = 0;
+		timeAttack = 60;
+		timerAIAttack = 0;
+		timerHealthEffect = 0;
 	}
+}
+
+void instructionScreen()
+{
+	if (g_abKeyPressed[K_ESCAPE])
+		g_eGameState = S_SPLASHSCREEN;
 }
 
 void clearScreen()
@@ -382,9 +477,13 @@ void renderSplashScreen()  // renders the splash screen
 	c.X = g_Console.getConsoleSize().X / 2 - 13;
 	g_Console.writeToBuffer(c, "Press <Enter> to start game", 0x09);
 	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 14;
+	g_Console.writeToBuffer(c, "Press <I> to view instructions", 0x09);
+	c.Y += 1;
 	c.X = g_Console.getConsoleSize().X / 2 - 15;
 	g_Console.writeToBuffer(c, "Press 'Esc' to quit once in-game", 0x09);
 }
+
 
 void renderGame()
 {
@@ -430,7 +529,7 @@ void renderMap()
 
 		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
 		{
-			if (radiusY >= 7) {
+			if (radiusY >= 4) {
 				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
 				c.X = mapGen.getStairLocationX();
 				c.Y = mapGen.getStairLocationY();
@@ -467,28 +566,35 @@ void renderMap()
 		}
 	}
 
-	//---------------------THE 3 X 3 VISION---------------------
-	for (int i = g_sChar.m_cLocation.Y + 1; i >= g_sChar.m_cLocation.Y - 1; i--)
+	mapGen.playerVision(g_dElapsedTime, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+	mapGen.torchView();
+
+	//---------------------GET BLOOD CURSE---------------------
+	if (curse.getActiveCurseShort() == 2 || curse.getActiveCurse2Short() == 2)
 	{
-		c.Y = i;
-		for (int j = g_sChar.m_cLocation.X + 2; j >= g_sChar.m_cLocation.X - 2; j--)
+		//---------------------MINUS HP EVERY 3 SEC---------------------
+		if (timerHealthEffect == 0)
+			timerHealthEffect = g_dElapsedTime;
+
+		if (g_dElapsedTime > timerHealthEffect + 3)
 		{
-			c.X = j;
-			//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
-			if (mapGen.getArrayCharacter(j, i) == mapGen.floors)
-				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.floorColor);
+			curse.bleedCurse();
+			timerHealthEffect = g_dElapsedTime;
+		}
+	} 
+	else
+	{
+		if (entityBase.getPlayerHealth() < 20)
+		{
+			//---------------------REGEN HEALTH EVERY 6 SEC---------------------
+			if (timerHealthEffect == 0)
+				timerHealthEffect = g_dElapsedTime;
 
-			else if (mapGen.getArrayCharacter(j, i) == mapGen.stair)
-				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i));
-
-			else if (mapGen.getArrayCharacter(j, i) == mapGen.walls)
-				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.wallColor);
-
-			else if (mapGen.getArrayCharacter(j, i) == mapGen.enemy)
-				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.enemyColor);
-
-			else if (mapGen.getArrayCharacter(j, i) == mapGen.bombDrop || mapGen.getArrayCharacter(j, i) == mapGen.ammoDrop)
-				g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.itemDropColor);
+			if (g_dElapsedTime > timerHealthEffect + 6)
+			{
+				entityBase.damagePlayer(-1);
+				timerHealthEffect = g_dElapsedTime;
+			}
 		}
 	}
 
@@ -532,19 +638,6 @@ void renderMap()
 		timerLaserRifle = g_dElapsedTime + 1;
 	}
 
-	//--------------------------------IF PLAYER PICK UP ITEM--------------------------------------
-	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.bombDrop)
-	{
-		mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.floors);
-		inven.setInventoryBombCount(inven.getBombCount() + 1);
-	}
-
-	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.ammoDrop)
-	{
-		mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.floors);
-		inven.setInventoryLaserRifleAmmountCount(inven.getLaserRifleAmmoCount() + 1);
-	}
-
 	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
 	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.stair || isKeyPressed('C'))
 	{
@@ -555,13 +648,16 @@ void renderMap()
 		inven.resetBombCoolDown();
 		inven.resetRickAxeCoolDown();
 		inven.resetLaserRifleCoolDown();
+		mapGen.resetLazer();
 		g_dElapsedTime = 0;
 		g_dBounceTime = 0;
 		timerDanger = 0;
 		timerBomb = 0;
 		timerRickAxe = 0;
 		timerLaserRifle = 0;
+		timeAttack = 60;
 		timerAIAttack = 0;
+		timerHealthEffect = 0;
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
@@ -570,7 +666,7 @@ void renderMap()
 		if(timerAIAttack == 0)
 			timerAIAttack = g_dElapsedTime;
 
-		if (g_dElapsedTime > timerAIAttack + 0.5)
+		if (g_dElapsedTime > timerAIAttack + 0.3)
 		{
 			entityBase.damagePlayer(1);
 			timerAIAttack = g_dElapsedTime;
@@ -579,7 +675,10 @@ void renderMap()
 
 	//---------------------SHOW GAME OVER SCREEN WHEN TIME RUNS OUT OR HEALTH IS ZERO---------------------
 	if (entityBase.getPlayerHealth() <= 0 || isTimeOver())
+	{
+		setHighScore(mapGen.getFloorLevel());
 		g_eGameState = S_GAMEOVER;
+	}
 }
 
 void renderCharacter()
@@ -592,102 +691,61 @@ void renderCharacter()
 
 void renderFramerate()
 {
-    COORD c;
-    // displays the framerate
-    std::ostringstream ss;
-    //ss << std::fixed << std::setprecision(3);
-    //ss << 1.0 / g_dDeltaTime << "fps";
-    //c.X = g_Console.getConsoleSize().X - 9;
-    //c.Y = 0;
-    //g_Console.writeToBuffer(c, ss.str());
+	COORD c;
+	// displays the framerate
+	std::ostringstream ss;
+	//ss << std::fixed << std::setprecision(3);
+	//ss << 1.0 / g_dDeltaTime << "fps";
+	//c.X = g_Console.getConsoleSize().X - 9;
+	//c.Y = 0;
+	//g_Console.writeToBuffer(c, ss.str());
 
-    // displays the elapsed time
-    ss.str("");
-    ss << ((timeAttack - (int)g_dElapsedTime)) - ((curse.getActiveCurseShort() == 1) ? 1 : 0) << " secs left!";
+	// displays the elapsed time
+	ss.str("");
+	ss << timeAttack << " secs left!";
 	c.X = (g_Console.getConsoleSize().X / 2) - 5;
-    c.Y = 0;
-
-	//---------------------FLASH RED WHEN LESS THAN 10 SECONDS LEFT---------------------
-	if ((timeAttack - (int)g_dElapsedTime) < 10)
-	{
-		if (timerDanger == 0)
-			timerDanger = (int)g_dElapsedTime;
+	c.Y = 0;
 
 		if (g_dElapsedTime > timerDanger + 1)
 		{
-			switch (danger)
+
+			if (curse.getActiveCurseShort() == 1 || curse.getActiveCurse2Short() == 1)
+				timeAttack -= 2;
+			else
+				timeAttack -= 1;
+
+			//---------------------FLASH RED WHEN LESS THAN 10 SECONDS LEFT---------------------
+			if (timeAttack < 10)
 			{
-			case 0:
-				danger = 1;
-				//---------------------SET RED---------------------
-				color = 0x0C;
-				timerDanger = (int)g_dElapsedTime;
-				break;
-			case 1:
-				danger = 0;
-				//---------------------SET WHITE---------------------
-				color = 0x0F;
-				timerDanger = (int)g_dElapsedTime;
-				break;
-			default:
-				break;
+				if (timerDanger == 0)
+
+				switch (danger)
+				{
+				case 0:
+					danger = 1;
+					//---------------------SET RED---------------------
+					color = 0x0C;
+					break;
+				case 1:
+					danger = 0;
+					//---------------------SET WHITE---------------------
+					color = 0x0F;
+					break;
+				default:
+					break;
+				}
 			}
+
+		else
+		{
+			color = 0x0F;
 		}
-	} 
-	else
-	{
-		color = 0x0F;
+
+			timerDanger = (int)g_dElapsedTime;
 	}
-
-    g_Console.writeToBuffer(c, ss.str(), color);
+	g_Console.writeToBuffer(c, ss.str(), color);
 }
 
-
-
-//----------------RENDER GAME OVER----------------
-void renderGameOver()
-{
-	COORD c = g_Console.getConsoleSize();
-	c.Y /= 3;
-	c.X = g_Console.getConsoleSize().X / 2 - 32;
-
-	g_Console.writeToBuffer(c, "  ________                        ________                     ", 0x0A);
-	c.Y += 1;
-	g_Console.writeToBuffer(c, " /  _____/_____    _____   ____   \\_____  \\___  __ ___________ ", 0x0B);
-	c.Y += 1;
-	g_Console.writeToBuffer(c, "/   \\  ___\\__  \\  /     \\_/ __ \\   /   |   \\  \\/ // __ \\_  __ \\", 0x0C);
-	c.Y += 1;
-	g_Console.writeToBuffer(c, "\\    \\_\\  \\/ __ \\|  Y Y  \\  ___/  /    |    \\   /\\  ___/|  | \\/", 0x0D);
-	c.Y += 1;
-	g_Console.writeToBuffer(c, " \\______  (____  /__|_|  /\\___  > \\_______  /\\_/  \\___  >__|   ", 0x0E);
-	c.Y += 1;
-	g_Console.writeToBuffer(c, "        \\/     \\/      \\/     \\/          \\/          \\/       ", 0x0F);
-	c.Y += 3;
-	g_Console.writeToBuffer(c, "==========================YOU DIEDED!=========================", 0x0A/* green color */);
-	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 13;
-	g_Console.writeToBuffer(c, "Press <R> to start game", 0x0A);
-	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 11;
-	g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0A);
-
-}
-
-//---------------------RENDER FLOOR NUMBER ONTO SCREEN---------------------
-void renderFloorNumber()
-{
-	COORD c;
-	std::ostringstream ss, ss2;
-	c.X = (g_Console.getConsoleSize().X / 2) - 3;
-	c.Y = 1;
-	ss << mapGen.getFloorLevel() << " Floor";
-	g_Console.writeToBuffer(c, ss.str());
-
-	c.Y += 5;
-	c.X += 10;
-	ss2 << "[Curse Active: " << curse.getActiveCurseString() << "]";
-	g_Console.writeToBuffer(c, ss2.str(), 0x0E);
-}
 
 void renderToScreen()
 {
@@ -695,86 +753,9 @@ void renderToScreen()
     g_Console.flushBufferToConsole();
 }
 
-//----------------RENDER HEALTH BAR----------------
-void renderHealthbar()
-{
-
-	std::ostringstream HPcout, HPBar;
-	c.Y = 8;
-	c.X = 50;
-
-	//---------------------PRINT HEALTH---------------------
-	for (int i = 0; i < 20; i++)
-	{
-		if (i == 0)
-			HPBar << "["; 
-
-		if (i < entityBase.getPlayerHealth())
-			HPBar << mapGen.walls; //------------PRINT BAR FOR HEALTH------------
-		else
-			HPBar << "-"; //------------PRINT '-' FOR MISSING HEALTH------------
-
-		if (i == 19)
-			HPBar << "]";
-	}
-
-	g_Console.writeToBuffer(c, HPBar.str(), 0x0C/* red color */);
-
-	HPcout << "Health: " << entityBase.getPlayerHealth() << "/20";
-
-	c.X += 4;
-	c.Y += 1;
-	g_Console.writeToBuffer(c, HPcout.str(), 0x0A/* green color */);
-
-}
-
-//----------------RENDER INVENTORY----------------
-void renderInventory()
-{
-
-	c.Y = 11;
-	c.X = 50;
-
-	g_Console.writeToBuffer(c, "Inventory: ", 0x0A/* green color */);
-	c.Y++;
-
-	for (int i = 0; i < inven.getInventorySize(); i++)
-	{
-		//------------RENDER WORDS RED IF COOLDOWN IS STILL ON------------
-		if (i == 1 && inven.getBombCoolDown() > 0 || i == 0 && inven.getRickAxeCoolDown() > 0 || i == 2 && inven.getLaserRifleCoolDown() > 0)
-			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0C/* red color */);
-		else
-			g_Console.writeToBuffer(c, inven.getInventoryItem(i), 0x0A/* green color */);
-		c.Y++;
-	}
-	g_Console.writeToBuffer(c, "<Press [Space] to use Echo Location>", 0x0D/* pink color */);
-
-}
-
-//------------RENDER GUIDE LINE TO HELP PLAYER------------
-void renderHelp()
-{
-	c.Y = 0;
-	c.X = 79;
-	g_Console.writeToBuffer(c, "Enemy: ", 0x0D/* pink color */);
-	c.X += 8;
-	g_Console.writeToBuffer(c, mapGen.enemy, 0x0C/* red color */);
-
-	c.Y += 1;
-	c.X = 80;
-	g_Console.writeToBuffer(c, "Bomb: ", 0x0D/* pink color */);
-	c.X += 7;
-	g_Console.writeToBuffer(c, mapGen.bomb, 0x0C/* red color */);
-
-	c.Y += 1;
-	c.X = 75;
-	g_Console.writeToBuffer(c, "Objective: ", 0x0D/* pink color */);
-	c.X += 12;
-	g_Console.writeToBuffer(c, mapGen.stair);
-}
 
 //---------------------CHECK IF TIME LEFT IS 0---------------------
 bool isTimeOver()
 {
-	return (((timeAttack - ((int)g_dElapsedTime)) - ((curse.getActiveCurseShort() == 1) ? 1 : 0) <= 0) ? true : false);
+	return ((timeAttack <= 0) ? true : false);
 }

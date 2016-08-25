@@ -83,9 +83,11 @@
     <ClCompile Include="Framework\console.cpp" />
     <ClCompile Include="Framework\timer.cpp" />
     <ClCompile Include="game.cpp" />
+    <ClCompile Include="HighScore.cpp" />
     <ClCompile Include="Inventory.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapGenerator.cpp" />
+    <ClCompile Include="RenderUI.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Curse.h" />
@@ -93,8 +95,10 @@
     <ClInclude Include="Framework\console.h" />
     <ClInclude Include="Framework\timer.h" />
     <ClInclude Include="game.h" />
+    <ClInclude Include="HighScore.h" />
     <ClInclude Include="Inventory.h" />
     <ClInclude Include="MapGenerator.h" />
+    <ClInclude Include="RenderUI.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

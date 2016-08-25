@@ -24,6 +24,7 @@ enum EKEYS
 enum EGAMESTATES
 {
     S_SPLASHSCREEN,
+	S_INSTRUCTIONSCREEN,
     S_GAME,
 	S_GAMEOVER,
     S_COUNT
@@ -45,6 +46,7 @@ void shutdown    ( void );      // do clean up, free memory
 void splashScreenWait();    // waits for time to pass in splash screen
 void gameplay();            // gameplay logic
 void gameOver(); // gameover logic
+void instructionScreen();
 void moveCharacter();       // moves the character, collision detection, physics, etc
 void processUserInput();    // checks if you should change states or do something else with the game, e.g. pause, exit
 void clearScreen();         // clears the current screen and draw from scratch 
@@ -55,11 +57,6 @@ void renderMap();           // renders the map to the buffer first
 void renderCharacter();     // renders the character into the buffer
 void renderFramerate();     // renders debug information, frame rate, elapsed time, etc
 void renderToScreen();      // dump the contents of the buffer to the screen, one frame worth of game
-
-void renderFloorNumber(); //----------------RENDER FLOOR LEVEL----------------
-void renderHealthbar(); //----------------RENDER HEALTH BAR----------------
-void renderInventory(); //----------------RENDER INVENTORY----------------
-void renderHelp(); //----------------RENDER HELP BAR----------------
 
 void processUserInputEndScreen();
 bool isTimeOver(); //----------------COUNT DOWN TIMER----------------
