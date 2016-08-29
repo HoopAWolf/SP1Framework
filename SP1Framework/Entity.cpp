@@ -44,5 +44,6 @@ int Entity::getPlayerHealth()
 //----------------DAMAGE PLAYER----------------
 void Entity::damagePlayer(short damage)
 {
+	//FEED BACK
 	entityBase.PlayerBase.Playerhealth -= damage;
 }

@@ -52,8 +52,13 @@ void Curse::startARandomCurse()
 	CurseBase.activeCurse = i;
 	if (mapGen.getFloorLevel() > 25)
 	{
-		i = rand() % 6;
-		CurseBase.activeCurse2 = i;
+		while (true)
+		{
+			i = rand() % 6;
+			CurseBase.activeCurse2 = i;
+			if (CurseBase.activeCurse2 != CurseBase.activeCurse)
+				break;
+		}
 	}
 
 }

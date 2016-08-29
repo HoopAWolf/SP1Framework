@@ -49,7 +49,8 @@ public:
 	//----------------GET INVEONTORY SIZE----------------
 	int getInventorySize();
 
-	
+	//----------------RESET INVEONTORY----------------
+	void resetInventory();
 
 	//------------RETURNS BOMB QUANTITY------------
 	short getBombCount();

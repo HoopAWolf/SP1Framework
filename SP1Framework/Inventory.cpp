@@ -16,6 +16,13 @@ string Inventory::getInventoryItem(int i)
 	return "-";
 }
 
+void Inventory::resetInventory()
+{
+	InventoryStorage.bombCount = 0;
+	InventoryStorage.shotsLeft = 0;
+	InventoryStorage.torchCount = 0;
+}
+
 //------------SET THE BOMB QUANTITY------------
 void Inventory::setInventoryBombCount(short i)
 {
@@ -98,16 +105,17 @@ void Inventory::clearInventory()
 //------------SET INVENTORY------------
 void Inventory::setInventory(bool setRickAxe, bool setBomb, bool setRifle, bool setTorch)
 {
+
 	std::ostringstream str, str2, str3;
 
 	if (getInventorySize() > 0)
 	{
 		if (setRickAxe)
-			InventoryStorage.InventorySlot[0] = " - Motivational Wall Breaker [A]";
+			InventoryStorage.InventorySlot[0] = " - Motivational Wall Breaker [Press Q]";
 
 		if (setBomb)
 		{
-			str << " - Binary Bomb [S] Ammount Left: ";
+			str << " - Binary Bomb [Press W] Ammount Left: ";
 
 			//------------SET THE COUNT OF BOMBS------------
 			str << InventoryStorage.bombCount;
@@ -116,7 +124,7 @@ void Inventory::setInventory(bool setRickAxe, bool setBomb, bool setRifle, bool 
 
 		if (setRifle)
 		{
-			str2 << " - Recursive Rifle [D] Shots Left: ";
+			str2 << " - Recursive Rifle [Press E] Shots Left: ";
 			//------------SET THE COUNT OF AMMO------------
 			str2 << InventoryStorage.shotsLeft;
 			InventoryStorage.InventorySlot[2] = str2.str();
@@ -124,7 +132,7 @@ void Inventory::setInventory(bool setRickAxe, bool setBomb, bool setRifle, bool 
 
 		if (setTorch)
 		{
-			str3 << " - Debugger Torch [F] Ammount Left: ";
+			str3 << " - Debugger Torch [Press R] Ammount Left: ";
 			//------------SET THE COUNT OF TORCH------------
 			str3 << InventoryStorage.torchCount;
 			InventoryStorage.InventorySlot[3] = str3.str();

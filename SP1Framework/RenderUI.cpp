@@ -11,6 +11,7 @@ extern Curse curse;
 extern MapGenerator mapGen;
 extern Entity entityBase;
 
+
 //----------------RENDER INVENTORY----------------
 void renderInventory()
 {
@@ -136,9 +137,9 @@ void renderFloorNumber()
 }
 
 //----------------RENDER GAME OVER----------------
-void renderGameOver()
+void renderGameOver(int endSelection)
 {
-	std::ostringstream ss, ss2;
+	std::ostringstream ss, ss2, ss3;
 	COORD c = g_Console.getConsoleSize();
 
 	c.Y = 5;
@@ -147,7 +148,7 @@ void renderGameOver()
 	ss << "You lost on floor " << mapGen.getFloorLevel();
 	g_Console.writeToBuffer(c, ss.str(), 0x0A);
 
-	ss2 << "Highscore: " << getHighScore();
+	ss2 << "Highscore: Floor " << getHighScore();
 	c.Y += 1;
 	g_Console.writeToBuffer(c, ss2.str(), 0x0A);
 
@@ -164,13 +165,14 @@ void renderGameOver()
 	c.Y += 1;
 	g_Console.writeToBuffer(c, "        \\/     \\/      \\/     \\/          \\/          \\/       ", 0x0F);
 	c.Y += 3;
-	g_Console.writeToBuffer(c, "==========================YOU DIEDED!=========================", 0x0A/* green color */);
+	ss3 <<  "=========================" << ((entityBase.getPlayerHealth() <= 0) ? "YOU DIED OF HEALTH" : "YOU DIED FROM TIME") << "=========================";
+	g_Console.writeToBuffer(c, ss3.str(), 0x0A/* green color */);
 	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 13;
-	g_Console.writeToBuffer(c, "Press <R> to start game", 0x0A);
+	c.X = g_Console.getConsoleSize().X / 2 - 7;
+	g_Console.writeToBuffer(c, "Return to main menu", ((endSelection == 0) ? 0x1A : 0x0A));
 	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 11;
-	g_Console.writeToBuffer(c, "Press 'Esc' to quit", 0x0A);
+	c.X = g_Console.getConsoleSize().X / 2;
+	g_Console.writeToBuffer(c, "Quit", ((endSelection == 1) ? 0x1A : 0x0A));
 
 }
 
@@ -181,7 +183,10 @@ void renderInstructions()
 
 	c.Y = 0;
 	c.X = 5;
-	g_Console.writeToBuffer(c, "DEEP INSTURCTION MANUAL 101", 0x02/* pink color */);
+	g_Console.writeToBuffer(c, "DEEP INSTURCTION MANUAL 101", 0x02/* green color */);
+
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "[Press ESC or SPACE to return]", 0x02/* green color */);
 
 	c.Y = 0;
 	c.X = 86;
@@ -230,21 +235,26 @@ void renderInstructions()
 
 	c.Y += 2;
 	c.X = 25;
-	g_Console.writeToBuffer(c, "Curse Of Darkness: The vision of player blinks", 0x0E/* pink color */);
+	g_Console.writeToBuffer(c, "Curse Of Darkness: The vision of player blinks", 0x0E/* yellow color */);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "Curse Of Time: Time counts down doubly fast", 0x0E/* pink color */);
+	g_Console.writeToBuffer(c, "Curse Of Time: Time counts down doubly fast", 0x0E/* yellow color */);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "Curse Of Bleed: Health goes down overtime", 0x0E/* pink color */);
+	g_Console.writeToBuffer(c, "Curse Of Bleed: Health goes down overtime", 0x0E/* yellow color */);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "Curse Of Confusion: Movement keys are opposite", 0x0E/* pink color */);
+	g_Console.writeToBuffer(c, "Curse Of Confusion: Movement keys are opposite", 0x0E/* yellow color */);
 	c.Y += 1;
-	g_Console.writeToBuffer(c, "Curse Of Butter Finger: Deny the player the ability to use some items(The items turn red)", 0x0E/* pink color */);
+	g_Console.writeToBuffer(c, "Curse Of Butter Finger: Deny the player the ability to use some items", 0x0E/* yellow color */);
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "(The items turn red)", 0x0E/* pink color */);
+
+	c.Y += 1;
+	g_Console.writeToBuffer(c, "MORE INTRUCTIONS IN GAME", 0x0E/* yellow color */);
 
 	c.Y += 2;
 	c.X += 2;
-	g_Console.writeToBuffer(c, "Red hightlight on item means it is on cooldown", 0x0C/* pink color */);
+	g_Console.writeToBuffer(c, "Red hightlight on item means it is on cooldown", 0x0C/* red color */);
 
 	c.Y += 2;
 	c.X -= 8;
-	g_Console.writeToBuffer(c, "Bomb does damage to player if player is in the radius of the blast", 0x0C/* pink color */);
+	g_Console.writeToBuffer(c, "Bomb does damage to player if player is in the radius of the blast", 0x0C/* red color */);
 }

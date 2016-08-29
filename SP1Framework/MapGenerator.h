@@ -16,10 +16,12 @@ class MapGenerator {
 public:
 
 	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
-	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64, torch = 'I', bombDrop = 'B', ammoDrop = 'R', verticalLazer = '|', horizontalLazer = 196;
+	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64, torch = 'I', bombDrop = 'B', ammoDrop = 'R', verticalLazer = '|', horizontalLazer = 196, enemyGrave = 206;
+
+	bool hellMode;
 
 	//----------------THIS IS THE COLOUR CODES----------------
-	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C, torchColor = 0x0D, itemDropColor = 0x0D, lazerColor = 0x0C;
+	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C, torchColor = 0x0D, itemDropColor = 0x0D, lazerColor = 0xAC;
 
 	//----------------ALL ENEMY CURRENT POSITIONS----------------
 	vector<COORD> allEnemyPosition;
@@ -65,13 +67,18 @@ public:
 	void moveAI(short playerLocationX, short playerLocationY, double elapsedTimer);
 	//----------------GENERATE ENEMY----------------
 	void generateEnemy(short StairX, short StairY);
-	//----------------CHECK FOR EMPTY SPACES(FOR AI MOVEMENTS)----------------
+	//----------------CHECK FOR EMPTY SPACES(FOR AI MOVEMENTS AND LAZER)----------------
 	bool checkForEmptySpace(short x, short y);
 	bool checkForEmptySpaceLazer(short x, short y);
 
+	//----------------SPAWNS LAZER----------------
 	void spawnLazer(short facing, int playerX, int playerY, double elapsedTimer);
+	//----------------MOVES LAZER----------------
 	void moveLazer(double elapsedTimer);
+	//----------------RESET LAZER FACING, COORD AND TIMING VECTORS----------------
 	void resetLazer();
+	//----------------RENDER LIGHT ON LAZER----------------
+	void lazerView();
 };	
 
 

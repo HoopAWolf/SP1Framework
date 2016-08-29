@@ -15,17 +15,29 @@
 #include "HighScore.h"
 #include "RenderUI.h"
 
+#include <windows.h>
+#include "MMSystem.h"
+#include "Windows.h"
+
+//----------------THIS IS TO SET THE SIZE OF MAZE----------------
+#define MAZEX 43
+#define MAZEY 23
+
+
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
-double timerAIAttack = 0.0;
+double timerAIAttack = 0.0, timerSelection = 0.0;
 
 
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
 bool useEchoLocation = false, countdownStarted = false, startGame = false;
 
 //----------------SET GOAL X AND Y LOCATION, PLAYER X AND Y LOCATION, RADIUS FOR ECHO LOCATION----------------
-int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing, timeAttack = 60, danger = 0, timerDanger = 0, timerBomb = 0, timerRickAxe = 0, timerLaserRifle = 0, timerHealthEffect = 0;
+int timer, playerLocationX, playerLocationY, radiusX, radiusY, facing,
+timeAttack = 60, danger = 0,
+timerDanger = 0, timerBomb = 0, timerRickAxe = 0, timerLaserRifle = 0, timerHealthEffect = 0,
+selection = 0, endSelection = 0;
 
 // MAP GENERATOR OBJECT
 extern MapGenerator mapGen;
@@ -64,13 +76,16 @@ void init( void )
 
     // sets the initial state for the game
     g_eGameState = S_SPLASHSCREEN;
-
     g_sChar.m_cLocation.X = g_Console.getConsoleSize().X - 60;
     g_sChar.m_cLocation.Y = (g_Console.getConsoleSize().Y / 2) + 5;
     g_sChar.m_bActive = true;
 	useEchoLocation = false;
     // sets the width, height and the font name to use in the console
     g_Console.setConsoleFont(0, 40, L"Consolas");
+
+	PlaySound(TEXT("titleScreen.wav"), NULL, SND_SYNC | SND_LOOP | SND_ASYNC);
+	waveOutSetVolume(NULL, 0x5555);
+
 }
 
 //--------------------------------------------------------------
@@ -161,20 +176,47 @@ void render()
 			break;
         case S_GAME: renderGame();
             break;
-		case S_GAMEOVER: renderGameOver();
+		case S_GAMEOVER: renderGameOver(endSelection);
 			break;
     }
-   // renderFramerate();  // renders debug information, frame rate, elapsed time, etc
+
     renderToScreen();   // dump the contents of the buffer to the screen, one frame worth of game
 }
 
 void splashScreenWait()    // waits for time to pass in splash screen
 {
-	if (g_abKeyPressed[K_ENTER]) // PRESS ENTER TO START GAME
-        g_eGameState = S_GAME;
 
-	if(isKeyPressed('I'))
-		g_eGameState = S_INSTRUCTIONSCREEN;
+	processUserInputSplashScreen();
+
+	if (g_dElapsedTime > timerSelection + 0.05)
+	{
+		if (g_abKeyPressed[K_ENTER] && selection == 0)
+		{ // PRESS ENTER TO START GAME
+			g_eGameState = S_GAME;
+			mapGen.hellMode = false;
+
+			PlaySound(TEXT("backgroundMusic.wav"), NULL, SND_SYNC | SND_LOOP | SND_ASYNC);
+			waveOutSetVolume(NULL, 0x5555);
+		}
+
+		else if (g_abKeyPressed[K_ENTER] && selection == 1)
+		{ // PRESS ENTER TO START GAME
+			g_eGameState = S_GAME;
+			mapGen.hellMode = true;
+			timeAttack = 30;
+
+			PlaySound(TEXT("backgroundMusic.wav"), NULL, SND_SYNC | SND_LOOP | SND_ASYNC);
+			waveOutSetVolume(NULL, 0x5555);
+		}
+
+		else if (g_abKeyPressed[K_ENTER] && selection == 2)
+			g_eGameState = S_INSTRUCTIONSCREEN;
+
+		else if (g_abKeyPressed[K_ENTER] && selection == 3)
+			g_bQuitGame = true;
+
+		timerSelection = g_dElapsedTime;
+	}
 }
 
 void gameplay()            // gameplay logic
@@ -320,7 +362,7 @@ void moveCharacter()
         bSomethingHappened = true;
     }
 
-	if (isKeyPressed('A'))
+	if (isKeyPressed('Q'))
 	{
 		//------------CHECK FOR ITEM AND RICKAXE COOLDOWN------------
 		if (inven.getInventoryItem(0) != "-" && inven.getRickAxeCoolDown() <= 0)
@@ -333,7 +375,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('S') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
+	if (isKeyPressed('W') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB AND BOMB COOLDOWN------------
 		if (inven.getInventoryItem(1) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && inven.getBombCoolDown() <= 0)
@@ -353,7 +395,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('D') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
+	if (isKeyPressed('E') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS AMMO AND LASER RIFLE COOLDOWN IS DOWN------------
 		if (inven.getInventoryItem(2) != "-" && inven.getLaserRifleCoolDown() <= 0)
@@ -371,7 +413,7 @@ void moveCharacter()
 		}
 	}
 
-	if (isKeyPressed('F') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
+	if (isKeyPressed('R') && curse.getActiveCurseShort() != 5 && curse.getActiveCurse2Short() != 5)
 	{
 		//------------CHECK FOR ITEM, IF LOCATION HAS BOMB OR HAS TORCH------------
 		if (inven.getInventoryItem(3) != "-" && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.bomb && mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) != mapGen.torch)
@@ -393,6 +435,7 @@ void moveCharacter()
         g_dBounceTime = g_dElapsedTime + 0.125; // 125ms should be enough
     }
 }
+
 void processUserInput()
 {
     // quits the game if player hits the escape key
@@ -400,38 +443,94 @@ void processUserInput()
         g_bQuitGame = true;    
 }
 
+void processUserInputSplashScreen()
+{
+	// SELECTION PHASE
+	if (timerSelection == 0.0)
+		timerSelection = g_dElapsedTime;
+
+	if (g_dElapsedTime > timerSelection + 0.05)
+	{
+		if (g_abKeyPressed[K_UP])
+		{
+			if (selection == 0)
+				selection = 3;
+			else
+				selection--;
+
+			timerSelection = g_dElapsedTime;
+		}
+		else if (g_abKeyPressed[K_DOWN])
+		{
+			if (selection == 3)
+				selection = 0;
+			else
+				selection++;
+
+			timerSelection = g_dElapsedTime;
+		}
+	}
+}
+
 void processUserInputEndScreen()
 {
-	// quits the game if player hits the escape key
-	if (g_abKeyPressed[K_ESCAPE])
-		g_bQuitGame = true;
-
-	if (isKeyPressed('R'))
+	if (g_dElapsedTime > timerSelection + 0.05)
 	{
-		g_eGameState = S_SPLASHSCREEN;
-		startGame = false;
-		mapGen.setBackToDefault(true, true, true, true, true);
-		useEchoLocation = false;
-		mapGen.setRenderMapAlready(false);
-		curse.resetCurse();
-		inven.resetBombCoolDown();
-		inven.resetRickAxeCoolDown();
-		inven.resetLaserRifleCoolDown();
-		g_dElapsedTime = 0;
-		g_dBounceTime = 0;
-		timerDanger = 0;
-		timerBomb = 0;
-		timerRickAxe = 0;
-		timerLaserRifle = 0;
-		timeAttack = 60;
-		timerAIAttack = 0;
-		timerHealthEffect = 0;
+		if (g_abKeyPressed[K_UP])
+		{
+			if (endSelection == 0)
+				endSelection = 1;
+			else
+				endSelection--;
+
+			timerSelection = g_dElapsedTime;
+		}
+		else if (g_abKeyPressed[K_DOWN])
+		{
+			if (endSelection == 1)
+				endSelection = 0;
+			else
+				endSelection++;
+
+			timerSelection = g_dElapsedTime;
+		}
+
+		// quits the game if player hits the escape key
+		if (g_abKeyPressed[K_ENTER] && endSelection == 1)
+		{
+			g_bQuitGame = true;
+			timerSelection = g_dElapsedTime;
+		}
+
+		if (g_abKeyPressed[K_ENTER] && endSelection == 0)
+		{
+			g_eGameState = S_SPLASHSCREEN;
+			startGame = false;
+			mapGen.setBackToDefault(true, true, true, true, true);
+			useEchoLocation = false;
+			mapGen.setRenderMapAlready(false);
+			curse.resetCurse();
+			inven.resetBombCoolDown();
+			inven.resetRickAxeCoolDown();
+			inven.resetLaserRifleCoolDown();
+			inven.resetInventory();
+			g_dElapsedTime = 0;
+			g_dBounceTime = 0;
+			timerDanger = 0;
+			timerBomb = 0;
+			timerRickAxe = 0;
+			timerLaserRifle = 0;
+			timeAttack = 60;
+			timerAIAttack = 0;
+			timerHealthEffect = 0;
+			timerSelection = g_dElapsedTime;
+		}
 	}
 }
 
 void instructionScreen()
 {
-	if (g_abKeyPressed[K_ESCAPE])
+	if (g_abKeyPressed[K_ESCAPE] || g_abKeyPressed[K_SPACE])
 		g_eGameState = S_SPLASHSCREEN;
 }
 
@@ -449,39 +548,42 @@ void renderSplashScreen()  // renders the splash screen
 	c.X = g_Console.getConsoleSize().X / 2 - 30;
 
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, " ______                        ______ _                    ", 0x03);
+	g_Console.writeToBuffer(c, " ______                        ______ _                    ", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, "(______)                      / _____) |                   ", 0x03);
+	g_Console.writeToBuffer(c, "(______)                      / _____) |                   ", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, " _     _ _____ _____ ____    ( (____ | | _____ _____ ____  ", 0x03);
+	g_Console.writeToBuffer(c, " _     _ _____ _____ ____    ( (____ | | _____ _____ ____  ", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, "| |   | | ___ | ___ |  _ \\    \\____ \\| || ___ | ___ |  _ \\ ", 0x03);
+	g_Console.writeToBuffer(c, "| |   | | ___ | ___ |  _ \\    \\____ \\| || ___ | ___ |  _ \\ ", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, "| |__/ /| ____| ____| |_| |   _____) ) || ____| ____| |_| )", 0x03);
+	g_Console.writeToBuffer(c, "| |__/ /| ____| ____| |_| |   _____) ) || ____| ____| |_| )", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, "|_____/ |_____)_____)  __/   (______/ \\_)_____)_____)  __/ ", 0x03);
+	g_Console.writeToBuffer(c, "|_____/ |_____)_____)  __/   (______/ \\_)_____)_____)  __/ ", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
 	if (rand() % 100 < 50)
-	g_Console.writeToBuffer(c, "                    |_|                             |_|    ", 0x03);
+	g_Console.writeToBuffer(c, "                    |_|                             |_|    ", ((selection == 1) ? 0x0C : 0x03));
 
 
 	c.Y += 2;
 	c.X = g_Console.getConsoleSize().X / 2 - 10;
-	g_Console.writeToBuffer(c, "Welcome to Deep Sleep!", 0x03);
+	g_Console.writeToBuffer(c, "Welcome to Deep Sleep!", ((selection == 1) ? 0x0C : 0x03));
 	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 13;
-	g_Console.writeToBuffer(c, "Press <Enter> to start game", 0x09);
+	c.X = g_Console.getConsoleSize().X / 2 - 5;
+	g_Console.writeToBuffer(c, "Start Game", ((selection == 0) ? 0x19 : 0x09));
 	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 14;
-	g_Console.writeToBuffer(c, "Press <I> to view instructions", 0x09);
+	c.X = g_Console.getConsoleSize().X / 2 - 5;
+	g_Console.writeToBuffer(c, "Hell  Mode", ((selection == 1) ? 0x1C : 0x0C));
 	c.Y += 1;
-	c.X = g_Console.getConsoleSize().X / 2 - 15;
-	g_Console.writeToBuffer(c, "Press 'Esc' to quit once in-game", 0x09);
+	c.X = g_Console.getConsoleSize().X / 2 - 6;
+	g_Console.writeToBuffer(c, "Instructions", ((selection == 2) ? 0x19 : 0x09));
+	c.Y += 1;
+	c.X = g_Console.getConsoleSize().X / 2 - 4;
+	g_Console.writeToBuffer(c, "Quit game", ((selection == 3) ? 0x19 : 0x09));
 }
 
 
@@ -499,7 +601,6 @@ void renderGame()
 void renderMap()
 {
 
-	//----------------SETTING ITEMS(TEMPORARY HERE FOR NOW)----------------
 	if (!startGame)
 	{
 		g_dElapsedTime = 0;
@@ -519,10 +620,8 @@ void renderMap()
 
 	COORD c;
 
-	//----------------THIS IS TO SET THE SIZE OF MAZE----------------
-	int mazeSizeX = 43, mazeSizeY = 23;
 
-	mapGen.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mazeSizeX, mazeSizeY, g_dElapsedTime);
+	mapGen.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, MAZEX, MAZEY, g_dElapsedTime);
 
 	//---------------------THE ECHO LOCATION VISION---------------------
 	if (useEchoLocation) {
@@ -545,6 +644,9 @@ void renderMap()
 				if (j < 43/* MAKING THE ECHO NOT DETECT OUTSIDE THE BOUNDARY */){
 					if (mapGen.getArrayCharacter(j, i) == mapGen.floors)
 						g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.echoedFloor);
+
+					else if(mapGen.getArrayCharacter(j, i) == mapGen.ammoDrop || mapGen.getArrayCharacter(j, i) == mapGen.bombDrop)
+						g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.itemDropColor);
 					
 				}
 			}
@@ -568,6 +670,7 @@ void renderMap()
 
 	mapGen.playerVision(g_dElapsedTime, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
 	mapGen.torchView();
+	mapGen.lazerView();
 
 	//---------------------GET BLOOD CURSE---------------------
 	if (curse.getActiveCurseShort() == 2 || curse.getActiveCurse2Short() == 2)
@@ -576,7 +679,7 @@ void renderMap()
 		if (timerHealthEffect == 0)
 			timerHealthEffect = g_dElapsedTime;
 
-		if (g_dElapsedTime > timerHealthEffect + 3)
+		if (g_dElapsedTime > timerHealthEffect + ((mapGen.hellMode) ? 8 : 3))
 		{
 			curse.bleedCurse();
 			timerHealthEffect = g_dElapsedTime;
@@ -590,7 +693,7 @@ void renderMap()
 			if (timerHealthEffect == 0)
 				timerHealthEffect = g_dElapsedTime;
 
-			if (g_dElapsedTime > timerHealthEffect + 6)
+			if (g_dElapsedTime > timerHealthEffect + ((mapGen.hellMode) ? 5 : 6))
 			{
 				entityBase.damagePlayer(-1);
 				timerHealthEffect = g_dElapsedTime;
@@ -655,9 +758,17 @@ void renderMap()
 		timerBomb = 0;
 		timerRickAxe = 0;
 		timerLaserRifle = 0;
-		timeAttack = 60;
+
+		if(!mapGen.hellMode)
+			timeAttack = 60;
+		else
+			timeAttack += 20;
+
 		timerAIAttack = 0;
 		timerHealthEffect = 0;
+
+		if (mapGen.getFloorLevel() % 2 == 0 && entityBase.getPlayerHealth() < 30 && mapGen.hellMode)
+			entityBase.damagePlayer(-1);
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
@@ -666,7 +777,7 @@ void renderMap()
 		if(timerAIAttack == 0)
 			timerAIAttack = g_dElapsedTime;
 
-		if (g_dElapsedTime > timerAIAttack + 0.3)
+		if (g_dElapsedTime > timerAIAttack + ((mapGen.hellMode) ? 0.477 : 0.3))
 		{
 			entityBase.damagePlayer(1);
 			timerAIAttack = g_dElapsedTime;
@@ -684,7 +795,12 @@ void renderMap()
 void renderCharacter()
 {
     // Draw the location of the character
-    WORD charColor = 0x0A;
+    WORD charColor;
+
+	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.enemy)
+		charColor = 0x0C;
+	else
+		charColor = 0x0A;
 
 	g_Console.writeToBuffer(g_sChar.m_cLocation, mapGen.player, charColor); //CHARACTER STUFF
 }
@@ -693,7 +809,7 @@ void renderFramerate()
 {
 	COORD c;
 	// displays the framerate
-	std::ostringstream ss;
+	std::ostringstream ss, ss2;
 	//ss << std::fixed << std::setprecision(3);
 	//ss << 1.0 / g_dDeltaTime << "fps";
 	//c.X = g_Console.getConsoleSize().X - 9;
@@ -706,6 +822,9 @@ void renderFramerate()
 	c.X = (g_Console.getConsoleSize().X / 2) - 5;
 	c.Y = 0;
 
+	if (timerDanger == 0)
+		timerDanger = (int)g_dElapsedTime;
+
 		if (g_dElapsedTime > timerDanger + 1)
 		{
 
@@ -717,7 +836,7 @@ void renderFramerate()
 			//---------------------FLASH RED WHEN LESS THAN 10 SECONDS LEFT---------------------
 			if (timeAttack < 10)
 			{
-				if (timerDanger == 0)
+				
 
 				switch (danger)
 				{
@@ -744,6 +863,10 @@ void renderFramerate()
 			timerDanger = (int)g_dElapsedTime;
 	}
 	g_Console.writeToBuffer(c, ss.str(), color);
+
+	ss2 << "Facing: " << ((facing > 1) ? ((facing == 2) ? "LEFT" : "RIGHT") : ((facing == 0) ? "UP" : "DOWN"));
+	c.Y += 2;
+	g_Console.writeToBuffer(c, ss2.str());
 }
 
 

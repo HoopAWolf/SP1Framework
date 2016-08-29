@@ -70,31 +70,17 @@ if (!renderMapAlready) {
 							else
 							{
 								
-									if (i < (mazeSizeX / 2) && j < (mazeSizeY / 2)
-										&& PlayerX < (mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
+									if ( j < (mazeSizeY / 2)
+										&& PlayerY < (mazeSizeY / 2))
 									{
-										XlocationX = i + (rand() % 20) + 5;
+										XlocationX =  (rand() % 30) + 1;
 										XlocationY = j + (rand() % 20) + 5;
 
 									}
-									else if (i < (mazeSizeX / 2) && j >(mazeSizeY / 2)
-										&& PlayerX < (mazeSizeX / 2) && PlayerY >(mazeSizeY / 2))
+									else if (j >(mazeSizeY / 2)
+										&& PlayerY > (mazeSizeY / 2))
 									{
-										XlocationX = i + (rand() % 20) + 5;
-										XlocationY = j - (rand() % 20) + 5;
-
-									}
-									else if (i > (mazeSizeX / 2) && j < (mazeSizeY / 2)
-										&& PlayerX >(mazeSizeX / 2) && PlayerY < (mazeSizeY / 2))
-									{
-										XlocationX = i - (rand() % 20) + 5;
-										XlocationY = j + (rand() % 20) + 5;
-
-									}
-									else if (i > (mazeSizeX / 2) && j > (mazeSizeY / 2)
-										&& PlayerX > (mazeSizeX / 2) && PlayerY > (mazeSizeY / 2))
-									{
-										XlocationX = i - (rand() % 20) + 5;
+										XlocationX = (rand() % 30) + 1;
 										XlocationY = j - (rand() % 20) + 5;
 
 									}
@@ -148,21 +134,27 @@ if (!renderMapAlready) {
 	mapArray[PlayerX][PlayerY] = floors;
 	FloorNo++;
 
-	if (getFloorLevel() > 15)
+	if (getFloorLevel() > 15 && !hellMode)
 	{
 		if (getFloorLevel() % 2 == 0)
 		{
-			inven.setInventoryBombCount(((getFloorLevel() > 25) ? inven.getBombCount() + 0 : inven.getBombCount() + 1));
-			inven.setInventoryLaserRifleAmmountCount(((getFloorLevel() > 25) ? inven.getLaserRifleAmmoCount() + 0 : inven.getLaserRifleAmmoCount() + 1));
+			inven.setInventoryBombCount(((getFloorLevel() > 30) ? inven.getBombCount() + 0 : inven.getBombCount() + 1));
+			inven.setInventoryLaserRifleAmmountCount(((getFloorLevel() > 30) ? inven.getLaserRifleAmmoCount() + 0 : inven.getLaserRifleAmmoCount() + 1));
 		}
 		inven.setInventoryTorchCount(((getFloorLevel() > 23) ? 2 : 1));
+	}
+	else if (hellMode)
+	{
+		inven.setInventoryBombCount(inven.getBombCount() + 2);
+		inven.setInventoryLaserRifleAmmountCount(inven.getLaserRifleAmmoCount() + 5);
+		inven.setInventoryTorchCount(inven.getTorchCount() + 1);
 	}
 
 	if (getFloorLevel() > 5)
 		curse.startARandomCurse();
 
 	//----------------GENERATE ENEMY----------------
-	if (getFloorLevel() > 15)
+	if (getFloorLevel() > 15 || hellMode)
 	{
 		generateEnemy(XlocationX, XlocationY);
 	}
@@ -177,7 +169,10 @@ if (renderMapAlready)
 	inven.clearInventory();
 	//---------------------GIVE ITEM AT CERTAIN LEVEL---------------------
 	if (getFloorLevel() > 1)
-		inven.setInventory(((getFloorLevel() > 5) ? true : false), ((getFloorLevel() > 15) ? true : false), ((getFloorLevel() > 19) ? true : false), ((getFloorLevel() > 17) ? true : false));
+		inven.setInventory(((getFloorLevel() > 5 || hellMode) ? true : false), 
+		((getFloorLevel() > 15 || hellMode) ? true : false), 
+		((getFloorLevel() > 19 || hellMode) ? true : false), 
+		((getFloorLevel() > 17 || hellMode) ? true : false));
 
 	if(allEnemyPosition.size() != 0)
 		moveAI(PlayerX, PlayerY, elapsedTimer);
@@ -189,11 +184,11 @@ if (renderMapAlready)
 	inven.torchLocation.clear();
 
 	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
-	for (int j = 0; j < mazeSizeY; j++)
+	for (int j = 0; j <= mazeSizeY; j++)
 	{
 		COORD torchCoord;
 		c.Y = j;
-		for (int i = 0; i < mazeSizeX; i++)
+		for (int i = 0; i <= mazeSizeX; i++)
 		{
 			c.X = i;
 
@@ -205,8 +200,10 @@ if (renderMapAlready)
 				torchCoord.Y = j;
 				inven.torchLocation.push_back(torchCoord);
 			}
+
 			else if (mapArray[i][j] == verticalLazer || mapArray[i][j] == horizontalLazer)
 				g_Console.writeToBuffer(c, mapArray[i][j], lazerColor);
+
 			else if (mapArray[i][j] == bomb)
 			{
 				if (bombCountDownTimer == 0)
@@ -241,6 +238,12 @@ if (renderMapAlready)
 					bombCountDownTimer = elapsedTimer + 1;
 				}
 			}
+
+			else if (i == 0 || j == 0 || i == mazeSizeX || j == mazeSizeY)
+				g_Console.writeToBuffer(c, mapArray[i][j], wallColor);
+
+			else if(mapArray[i][j] == enemyGrave)
+				g_Console.writeToBuffer(c, mapArray[i][j], wallColor);
 
 			else //----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
 				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
@@ -331,19 +334,28 @@ void MapGenerator::replaceMapCharacterXY(short x, short y, char newChar)
 //----------------GENERATE ENEMY----------------
 void MapGenerator::generateEnemy(short StairX, short StairY)
 {
+	int enemies = 0, maxEnemies = ((hellMode) ? getFloorLevel() / 2 : ((getFloorLevel() > 18) ? ((getFloorLevel() > 25) ? 5 : 3) : 2));
+
 	srand(time(NULL));
 	allEnemyPosition.clear();
 	allEnemytimer.clear();
 
-	int radiusSpawnX = (rand() % 4) + 1, radiusSpawnY = (rand() % 4) + 1;
+	int radiusSpawnX = (rand() % 20) + 1, radiusSpawnY = (rand() % 20) + 1;
+
+	if (hellMode && maxEnemies > 30)
+		maxEnemies = 30;
 
 	for (int y = -radiusSpawnY; y <= radiusSpawnY; y++)
 	{
 		for (int x = -radiusSpawnX; x <= radiusSpawnX; x++)
 		{
 			//---------------------INCRASE CHANCE OF SPAWNING PER LEVEL---------------------
-			if (rand() % 100 > ((getFloorLevel() > 18) ? ((getFloorLevel() > 20) ? 65 : 75): 85))
+			if (rand() % 100 > ((getFloorLevel() > 18) ? ((getFloorLevel() > 20) ? 65 : 75) : 85) && !hellMode || hellMode)
 			{
+
+				if (maxEnemies <= 0)
+					break;
+
 				if (y != 0 && x != 0)
 				{
 					if (getArrayCharacter(StairX + x, StairY + y) == floors)
@@ -351,11 +363,19 @@ void MapGenerator::generateEnemy(short StairX, short StairY)
 						coord.X = StairX + x;
 						coord.Y = StairY + y;
 
-						mapArray[coord.X] [coord.Y] = enemy;
+						mapArray[coord.X][coord.Y] = enemy;
 						allEnemyPosition.push_back(coord);
+						enemies++;
+						maxEnemies--;
 					}
 
 				}
+			}
+
+			if (enemies > 2 && !hellMode)
+			{
+				enemies = 0;
+				break;
 			}
 		}
 	}
@@ -366,8 +386,9 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 {
 	srand(time(NULL));
 
-	bool isPlayerNearby = false;
-	int differenceBetweenPlayerAndEnemyX, differenceBetweenPlayerAndEnemyY;
+	bool isPlayerNearby = false, isLazerNearby = false;
+	int differenceBetweenPlayerAndEnemyX, differenceBetweenPlayerAndEnemyY, 
+		differenceBetweenLazerAndEnemyX, differenceBetweenLazerAndEnemyY;
 
 	//----------------SETTING MOVEMENT TIMER----------------
 	if (allEnemytimer.size() == 0)
@@ -394,6 +415,7 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 					differenceBetweenPlayerAndEnemyX = allEnemyPosition[j].X - playerLocationX;
 					differenceBetweenPlayerAndEnemyY = allEnemyPosition[j].Y - playerLocationY;
 
+
 					//----------------BREAK ONCE CALCULATED DISTANCE----------------
 					break;
 
@@ -401,12 +423,119 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 			}
 		}
 
+		//----------------CHECK RADIUS OF 10 X 8----------------
+		for (int y = allEnemyPosition[j].Y - 4; y <= allEnemyPosition[j].Y + 4; y++)
+		{
+			for (int x = allEnemyPosition[j].X - 5; x <= allEnemyPosition[j].X + 5; x++)
+			{
+				for (int i = 0; i < allLazerPosition.size(); i++)
+				{
+					if (x == allLazerPosition[i].X && y == allLazerPosition[i].Y)
+					{
+						isLazerNearby = true;
+
+						//----------------GETTING DISTANCE BETWEEN ENEMY AND PLAYER----------------
+						differenceBetweenLazerAndEnemyX = allEnemyPosition[j].X - allLazerPosition[i].X;
+						differenceBetweenLazerAndEnemyY = allEnemyPosition[j].Y - allLazerPosition[i].Y;
+
+						//----------------BREAK ONCE CALCULATED DISTANCE----------------
+						break;
+
+					}
+				}
+			}
+		}
+
 		//----------------THIS TIMER SLOWS DOWN THEIR MOVEMENTS----------------
 		if (elapsedTimer > allEnemytimer[j] + 0.3)
 		{
+			//----------------RUNNING FROM LAZER----------------
+			if (isLazerNearby)
+			{ 
+				if (differenceBetweenLazerAndEnemyY != 0)
+				{
+					//----------------MOVING DOWN(+)----------------
+					if (differenceBetweenLazerAndEnemyY < 0)
+					{
+						//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
+						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
+						{
+							mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
 
+							//----------------REPLACING LAST LOCATION WITH FLOOR----------------
+							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+							entityUpdatedLocationY -= 1;
+
+							//----------------UPDATING POSITION----------------
+							coord.X = entityUpdatedLocationX;
+							coord.Y = entityUpdatedLocationY;
+
+							//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
+							allEnemyPosition[j] = coord;
+							allEnemytimer[j] = elapsedTimer;
+						}
+					}
+					//----------------MOVING UP(-)----------------
+					else
+					{
+						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
+						{
+							mapArray[entityUpdatedLocationX][entityUpdatedLocationY + 1] = enemy;
+
+							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+							entityUpdatedLocationY += 1;
+							coord.X = entityUpdatedLocationX;
+							coord.Y = entityUpdatedLocationY;
+							allEnemyPosition[j] = coord;
+							allEnemytimer[j] = elapsedTimer;
+						}
+					}
+				}
+
+				if (differenceBetweenLazerAndEnemyX != 0)
+				{
+					//----------------MOVING RIGHT(+)----------------
+					if (differenceBetweenLazerAndEnemyX < 0)
+					{
+						if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
+						{
+							mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
+
+							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+							entityUpdatedLocationX -= 1;
+							coord.X = entityUpdatedLocationX;
+							coord.Y = entityUpdatedLocationY;
+							allEnemyPosition[j] = coord;
+							allEnemytimer[j] = elapsedTimer;
+						}
+					}
+					//----------------MOVING LEFT(-)----------------
+					else
+					{
+						if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
+						{
+							mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
+
+							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+							entityUpdatedLocationX += 1;
+							coord.X = entityUpdatedLocationX;
+							coord.Y = entityUpdatedLocationY;
+							allEnemyPosition[j] = coord;
+							allEnemytimer[j] = elapsedTimer;
+						}
+					}
+				}
+			}
 			//----------------CHECKING IF PLAYER IS NEARBY----------------
-			if (isPlayerNearby)
+			else if (isPlayerNearby)
 			{
 				if (differenceBetweenPlayerAndEnemyY != 0)
 				{
@@ -574,28 +703,33 @@ void MapGenerator::moveLazer(double elapsedTimer)
 {
 	COORD lazerCoord;
 
+	//LEAVE LIGHT FEED BACK
+
 	for (int i = 0; i < allLazerPosition.size(); i++)
 	{
-
+		bool enemyDeleted = false;
+		//----------------TIMER FOR LAZER----------------
 		if (elapsedTimer > allLazerTimer[i] + 0.1)
 		{
-
+			//----------------MOVING UP----------------
 			if (allLazerFacing[i] == 0)
 			{
+				//----------------CHECKING FOR EMPTY SPACES----------------
 				if (checkForEmptySpaceLazer(allLazerPosition[i].X, allLazerPosition[i].Y - 1))
 				{
-
+					//----------------CHECKING FOR ENEMIES----------------
 					if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y - 1] == mapGen.enemy)
 					{
 						for (int j = 0; j < allEnemyPosition.size(); j++)
 						{
-
+							
 							lazerCoord.X = allLazerPosition[i].X;
 							lazerCoord.Y = allLazerPosition[i].Y - 1;
-
+							//----------------CHECKING ENEMY POSITION VECTOR----------------
 							if (lazerCoord.X == allEnemyPosition[j].X && lazerCoord.Y == allEnemyPosition[j].Y)
 							{
-								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.floors;
+								//----------------REMOVING LAZER AND ENEMY IF THEY COME IN CONTACT----------------
+								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.enemyGrave;
 								mapArray[lazerCoord.X][lazerCoord.Y + 1] = mapGen.floors;
 								allLazerPosition.erase(allLazerPosition.begin() + i);
 								allLazerFacing.erase(allLazerFacing.begin() + i);
@@ -603,22 +737,30 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 								allEnemyPosition.erase(allEnemyPosition.begin() + j);
 								allEnemytimer.erase(allEnemytimer.begin() + j);
+
+								enemyDeleted = true;
+								break;
 							}
 						}
-						break;
 					}
 
-					mapArray[allLazerPosition[i].X][allLazerPosition[i].Y - 1] = mapGen.verticalLazer;
+					if (!enemyDeleted)
+					{
+						//----------------MOVING LAZERS----------------
+						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y - 1] = mapGen.verticalLazer;
 
-					if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
-						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
+						//----------------REPLACING LAZER BACK WITH FLOOR----------------
+						if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
+							mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
 
-					lazerCoord.X = allLazerPosition[i].X;
-					lazerCoord.Y = allLazerPosition[i].Y - 1;
-					coord.X = lazerCoord.X;
-					coord.Y = lazerCoord.Y;
-					allLazerPosition[i] = coord;
-					allLazerTimer[i] = elapsedTimer;
+						//----------------SETTING INTO NEW COORDS----------------
+						lazerCoord.X = allLazerPosition[i].X;
+						lazerCoord.Y = allLazerPosition[i].Y - 1;
+						coord.X = lazerCoord.X;
+						coord.Y = lazerCoord.Y;
+						allLazerPosition[i] = coord;
+						allLazerTimer[i] = elapsedTimer;
+					}
 
 				}
 				else
@@ -629,6 +771,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 					allLazerTimer.erase(allLazerTimer.begin() + i);
 				}
 			}
+			//----------------MOVING DOWN----------------
 			else if (allLazerFacing[i] == 1)
 			{
 				if (checkForEmptySpaceLazer(allLazerPosition[i].X, allLazerPosition[i].Y + 1))
@@ -644,7 +787,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 							if (lazerCoord.X == allEnemyPosition[j].X && lazerCoord.Y == allEnemyPosition[j].Y)
 							{
-								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.floors;
+								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.enemyGrave;
 								mapArray[lazerCoord.X][lazerCoord.Y - 1] = mapGen.floors;
 								allLazerPosition.erase(allLazerPosition.begin() + i);
 								allLazerFacing.erase(allLazerFacing.begin() + i);
@@ -652,24 +795,28 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 								allEnemyPosition.erase(allEnemyPosition.begin() + j);
 								allEnemytimer.erase(allEnemytimer.begin() + j);
+
+								enemyDeleted = true;
+								break;
 							}
 						}
-						break;
 
 					}
 
-					mapArray[allLazerPosition[i].X][allLazerPosition[i].Y + 1] = mapGen.verticalLazer;
+					if (!enemyDeleted)
+					{
+						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y + 1] = mapGen.verticalLazer;
 
-					if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
-						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
+						if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
+							mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
 
-					lazerCoord.X = allLazerPosition[i].X;
-					lazerCoord.Y = allLazerPosition[i].Y + 1;
-					coord.X = lazerCoord.X;
-					coord.Y = lazerCoord.Y;
-					allLazerPosition[i] = coord;
-					allLazerTimer[i] = elapsedTimer;
-
+						lazerCoord.X = allLazerPosition[i].X;
+						lazerCoord.Y = allLazerPosition[i].Y + 1;
+						coord.X = lazerCoord.X;
+						coord.Y = lazerCoord.Y;
+						allLazerPosition[i] = coord;
+						allLazerTimer[i] = elapsedTimer;
+					}
 				}
 				else
 				{
@@ -679,6 +826,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 					allLazerTimer.erase(allLazerTimer.begin() + i);
 				}
 			}
+			//----------------MOVING LEFT----------------
 			else if (allLazerFacing[i] == 2)
 			{
 				if (checkForEmptySpaceLazer(allLazerPosition[i].X - 1, allLazerPosition[i].Y))
@@ -694,7 +842,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 							if (lazerCoord.X == allEnemyPosition[j].X && lazerCoord.Y == allEnemyPosition[j].Y)
 							{
-								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.floors;
+								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.enemyGrave;
 								mapArray[lazerCoord.X + 1][lazerCoord.Y] = mapGen.floors;
 								allLazerPosition.erase(allLazerPosition.begin() + i);
 								allLazerFacing.erase(allLazerFacing.begin() + i);
@@ -702,22 +850,27 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 								allEnemyPosition.erase(allEnemyPosition.begin() + j);
 								allEnemytimer.erase(allEnemytimer.begin() + j);
+
+								enemyDeleted = true;
+								break;
 							}
 						}
-						break;
 					}
 
-					mapArray[allLazerPosition[i].X - 1][allLazerPosition[i].Y] = mapGen.horizontalLazer;
+					if (!enemyDeleted)
+					{
+						mapArray[allLazerPosition[i].X - 1][allLazerPosition[i].Y] = mapGen.horizontalLazer;
 
-					if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
-						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
+						if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
+							mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
 
-					lazerCoord.X = allLazerPosition[i].X - 1;
-					lazerCoord.Y = allLazerPosition[i].Y;
-					coord.X = lazerCoord.X;
-					coord.Y = lazerCoord.Y;
-					allLazerPosition[i] = coord;
-					allLazerTimer[i] = elapsedTimer;
+						lazerCoord.X = allLazerPosition[i].X - 1;
+						lazerCoord.Y = allLazerPosition[i].Y;
+						coord.X = lazerCoord.X;
+						coord.Y = lazerCoord.Y;
+						allLazerPosition[i] = coord;
+						allLazerTimer[i] = elapsedTimer;
+					}
 
 				}
 				else
@@ -728,6 +881,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 					allLazerTimer.erase(allLazerTimer.begin() + i);
 				}
 			}
+			//----------------MOVING RIGHT----------------
 			else if (allLazerFacing[i] == 3)
 			{
 				if (checkForEmptySpaceLazer(allLazerPosition[i].X + 1, allLazerPosition[i].Y))
@@ -742,7 +896,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 							if (lazerCoord.X == allEnemyPosition[j].X && lazerCoord.Y == allEnemyPosition[j].Y)
 							{
-								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.floors;
+								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.enemyGrave;
 								mapArray[lazerCoord.X - 1][lazerCoord.Y] = mapGen.floors;
 								allLazerPosition.erase(allLazerPosition.begin() + i);
 								allLazerFacing.erase(allLazerFacing.begin() + i);
@@ -750,22 +904,27 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 								allEnemyPosition.erase(allEnemyPosition.begin() + j);
 								allEnemytimer.erase(allEnemytimer.begin() + j);
+
+								enemyDeleted = true;
+								break;
 							}
 						}
-						break;
 					}
 
-					mapArray[allLazerPosition[i].X + 1][allLazerPosition[i].Y] = mapGen.horizontalLazer;
+					if (!enemyDeleted)
+					{
+						mapArray[allLazerPosition[i].X + 1][allLazerPosition[i].Y] = mapGen.horizontalLazer;
 
-					if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
-						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
+						if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
+							mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
 
-					lazerCoord.X = allLazerPosition[i].X + 1;
-					lazerCoord.Y = allLazerPosition[i].Y;
-					coord.X = lazerCoord.X;
-					coord.Y = lazerCoord.Y;
-					allLazerPosition[i] = coord;
-					allLazerTimer[i] = elapsedTimer;
+						lazerCoord.X = allLazerPosition[i].X + 1;
+						lazerCoord.Y = allLazerPosition[i].Y;
+						coord.X = lazerCoord.X;
+						coord.Y = lazerCoord.Y;
+						allLazerPosition[i] = coord;
+						allLazerTimer[i] = elapsedTimer;
+					}
 				}
 				else
 				{
@@ -784,11 +943,12 @@ void MapGenerator::spawnLazer(short facing, int playerX, int playerY, double ela
 	COORD lazerCoord;
 	lazerCoord.X = playerX;
 	lazerCoord.Y = playerY;
-
+	//----------------PUSH LOCATION, FACE AND TIMER INTO LAZER VECTORS----------------
 	allLazerPosition.push_back(lazerCoord);
 	allLazerFacing.push_back(facing);
 	allLazerTimer.push_back(elapsedTimer);
 
+	//----------------DISPLAYING LAZER----------------
 	mapArray[lazerCoord.X][lazerCoord.Y] = ((facing > 1) ? mapGen.horizontalLazer : mapGen.verticalLazer);
 }
 
@@ -796,7 +956,6 @@ void MapGenerator::spawnLazer(short facing, int playerX, int playerY, double ela
 bool MapGenerator::checkForEmptySpace(short x, short y)
 {
 	if (mapArray[x][y] != walls &&
-		mapArray[x][y] != stair &&
 		mapArray[x][y] != enemy)
 		return true;
 
@@ -806,13 +965,13 @@ bool MapGenerator::checkForEmptySpace(short x, short y)
 //----------------CHECK FOR EMPTY SPACES(FOR AI MOVEMENTS)----------------
 bool MapGenerator::checkForEmptySpaceLazer(short x, short y)
 {
-	if (mapArray[x][y] != walls &&
-		mapArray[x][y] != stair)
+	if (mapArray[x][y] != walls)
 		return true;
 
 	return false;
 }
 
+//----------------RESET LAZER VECTORS----------------
 void MapGenerator::resetLazer()
 {
 	if (allLazerPosition.size() != 0)
@@ -913,6 +1072,56 @@ void MapGenerator::torchView()
 
 					else if (mapGen.getArrayCharacter(x, y) == mapGen.enemy)
 						g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y), mapGen.enemyColor);
+
+					else if (mapGen.getArrayCharacter(x, y) == mapGen.ammoDrop || mapGen.getArrayCharacter(x, y) == mapGen.bombDrop)
+						g_Console.writeToBuffer(torchCoord, mapGen.getArrayCharacter(x, y), mapGen.itemDropColor);
+				}
+			}
+		}
+	}
+}
+
+//----------------RENDER LIGHT ON LAZER----------------
+void MapGenerator::lazerView()
+{
+	if (allLazerPosition.size() > 0)
+	{
+		for (int i = 0; i < allLazerPosition.size(); i++)
+		{
+			COORD lazerCoord;
+			int radiusY, radiusX;
+			if (allLazerFacing[i] > 1)
+			{
+				radiusY = 1;
+				radiusX = 2;
+			}
+			else
+			{
+				radiusY = 2;
+				radiusX = 1;
+			}
+
+			for (int y = allLazerPosition[i].Y - radiusY; y <= allLazerPosition[i].Y + radiusY; y++)
+			{
+				lazerCoord.Y = y;
+				for (int x = allLazerPosition[i].X - radiusX; x <= allLazerPosition[i].X + radiusX; x++)
+				{
+					lazerCoord.X = x;
+					//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
+					if (mapGen.getArrayCharacter(x, y) == mapGen.floors)
+						g_Console.writeToBuffer(lazerCoord, mapGen.getArrayCharacter(x, y), mapGen.floorColor);
+
+					else if (mapGen.getArrayCharacter(x, y) == mapGen.stair)
+						g_Console.writeToBuffer(lazerCoord, mapGen.getArrayCharacter(x, y));
+
+					else if (mapGen.getArrayCharacter(x, y) == mapGen.walls)
+						g_Console.writeToBuffer(lazerCoord, mapGen.getArrayCharacter(x, y), mapGen.wallColor);
+
+					else if (mapGen.getArrayCharacter(x, y) == mapGen.enemy)
+						g_Console.writeToBuffer(lazerCoord, mapGen.getArrayCharacter(x, y), mapGen.enemyColor);
+
+					else if (mapGen.getArrayCharacter(x, y) == mapGen.ammoDrop || mapGen.getArrayCharacter(x, y) == mapGen.bombDrop)
+						g_Console.writeToBuffer(lazerCoord, mapGen.getArrayCharacter(x, y), mapGen.itemDropColor);
 				}
 			}
 		}
