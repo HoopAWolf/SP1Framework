@@ -27,7 +27,7 @@
 double  g_dElapsedTime;
 double  g_dDeltaTime;
 bool    g_abKeyPressed[K_COUNT];
-double timerAIAttack = 0.0, timerSelection = 0.0;
+double timerAIAttack = 0.0, timerSelection = 0.0, timerHealEffect = 5.0;
 
 
 //----------------SET BOOL VARIABLE FOR MAP RENDERING, ECHO LOCATION, COUNTDOWN----------------
@@ -188,34 +188,44 @@ void splashScreenWait()    // waits for time to pass in splash screen
 
 	processUserInputSplashScreen();
 
-	if (g_dElapsedTime > timerSelection + 0.05)
+	if (g_dElapsedTime > timerSelection + 0.01)
 	{
 		if (g_abKeyPressed[K_ENTER] && selection == 0)
 		{ // PRESS ENTER TO START GAME
 			g_eGameState = S_GAME;
 			mapGen.hellMode = false;
+			timerHealEffect = 5;
 
 			PlaySound(TEXT("backgroundMusic.wav"), NULL, SND_SYNC | SND_LOOP | SND_ASYNC);
 			waveOutSetVolume(NULL, 0x5555);
+			timerSelection = g_dElapsedTime;
 		}
 
 		else if (g_abKeyPressed[K_ENTER] && selection == 1)
 		{ // PRESS ENTER TO START GAME
 			g_eGameState = S_GAME;
 			mapGen.hellMode = true;
-			timeAttack = 30;
+			timeAttack = 20;
+			timerHealEffect = 6;
 
 			PlaySound(TEXT("backgroundMusic.wav"), NULL, SND_SYNC | SND_LOOP | SND_ASYNC);
 			waveOutSetVolume(NULL, 0x5555);
+			timerSelection = g_dElapsedTime;
 		}
 
 		else if (g_abKeyPressed[K_ENTER] && selection == 2)
+		{
 			g_eGameState = S_INSTRUCTIONSCREEN;
+			timerSelection = g_dElapsedTime;
+		}
 
 		else if (g_abKeyPressed[K_ENTER] && selection == 3)
+		{
 			g_bQuitGame = true;
+			timerSelection = g_dElapsedTime;
+		}
 
-		timerSelection = g_dElapsedTime;
+		
 	}
 }
 
@@ -234,7 +244,30 @@ void gameOver()
 void moveCharacter()
 {
     bool bSomethingHappened = false;
-    if (g_dBounceTime > g_dElapsedTime)
+	if (curse.getActiveCurseShort() == 4 || curse.getActiveCurse2Short() == 4)
+	{
+		if (g_abKeyPressed[K_UP])
+			facing = 1;
+		if (g_abKeyPressed[K_DOWN])
+			facing = 0;
+		if (g_abKeyPressed[K_LEFT])
+			facing = 3;
+		if (g_abKeyPressed[K_RIGHT])
+			facing = 2;
+	}
+	else
+	{
+		if (g_abKeyPressed[K_UP])
+			facing = 0;
+		if (g_abKeyPressed[K_DOWN])
+			facing = 1;
+		if (g_abKeyPressed[K_LEFT])
+			facing = 2;
+		if (g_abKeyPressed[K_RIGHT])
+			facing = 3;
+	}
+
+    if (g_dBounceTime + 0.127 > g_dElapsedTime)
         return;
 
     // Updating the location of the character based on the key press
@@ -358,7 +391,7 @@ void moveCharacter()
 
 		//----------------SETTING RADIUS FOR ECHO LOCATION----------------
 		radiusX = 10;
-		radiusY = 5;
+		radiusY = ((mapGen.hellMode) ? 10 : 5);
         bSomethingHappened = true;
     }
 
@@ -384,6 +417,8 @@ void moveCharacter()
 			if (inven.getBombCount() > 0){
 				//------------REPLACE MAP ELEMENT WITH BOMB------------
 				mapGen.replaceMapCharacterXY(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, mapGen.bomb);
+				mapGen.bombCoord.X = g_sChar.m_cLocation.X;
+				mapGen.bombCoord.Y = g_sChar.m_cLocation.Y;
 				//------------RESET BOMB COUNTDOWN------------
 				inven.resetBombCountDown();
 				//------------RESET BOMB COOLDOWN------------
@@ -432,7 +467,7 @@ void moveCharacter()
     if (bSomethingHappened)
     {
         // set the bounce time to some time in the future to prevent accidental triggers
-        g_dBounceTime = g_dElapsedTime + 0.125; // 125ms should be enough
+        g_dBounceTime = g_dElapsedTime + 0.033; // 125ms should be enough
     }
 }
 
@@ -449,7 +484,7 @@ void processUserInputSplashScreen()
 	if (timerSelection == 0.0)
 		timerSelection = g_dElapsedTime;
 
-	if (g_dElapsedTime > timerSelection + 0.05)
+	if (g_dElapsedTime > timerSelection + 0.1)
 	{
 		if (g_abKeyPressed[K_UP])
 		{
@@ -474,7 +509,7 @@ void processUserInputSplashScreen()
 
 void processUserInputEndScreen()
 {
-	if (g_dElapsedTime > timerSelection + 0.05)
+	if (g_dElapsedTime > timerSelection + 0.1)
 	{
 		if (g_abKeyPressed[K_UP])
 		{
@@ -494,12 +529,12 @@ void processUserInputEndScreen()
 
 			timerSelection = g_dElapsedTime;
 		}
+	}
 
 		// quits the game if player hits the escape key
 		if (g_abKeyPressed[K_ENTER] && endSelection == 1)
 		{
 			g_bQuitGame = true;
-			timerSelection = g_dElapsedTime;
 		}
 
 		if (g_abKeyPressed[K_ENTER] && endSelection == 0)
@@ -514,8 +549,6 @@ void processUserInputEndScreen()
 			inven.resetRickAxeCoolDown();
 			inven.resetLaserRifleCoolDown();
 			inven.resetInventory();
-			g_dElapsedTime = 0;
-			g_dBounceTime = 0;
 			timerDanger = 0;
 			timerBomb = 0;
 			timerRickAxe = 0;
@@ -523,9 +556,9 @@ void processUserInputEndScreen()
 			timeAttack = 60;
 			timerAIAttack = 0;
 			timerHealthEffect = 0;
-			timerSelection = g_dElapsedTime;
+			timerSelection = 0;
+			g_dElapsedTime = 0;
 		}
-	}
 }
 
 void instructionScreen()
@@ -687,16 +720,12 @@ void renderMap()
 	} 
 	else
 	{
-		if (entityBase.getPlayerHealth() < 20)
+		if (entityBase.getPlayerHealth() < entityBase.getPlayerMaxHealth())
 		{
-			//---------------------REGEN HEALTH EVERY 6 SEC---------------------
-			if (timerHealthEffect == 0)
-				timerHealthEffect = g_dElapsedTime;
-
-			if (g_dElapsedTime > timerHealthEffect + ((mapGen.hellMode) ? 5 : 6))
+			if ((timerHealEffect - g_dElapsedTime) <= 0)
 			{
 				entityBase.damagePlayer(-1);
-				timerHealthEffect = g_dElapsedTime;
+				timerHealEffect = g_dElapsedTime + ((mapGen.hellMode) ? 5 : 6);
 			}
 		}
 	}
@@ -752,6 +781,8 @@ void renderMap()
 		inven.resetRickAxeCoolDown();
 		inven.resetLaserRifleCoolDown();
 		mapGen.resetLazer();
+		timerHealEffect = timerHealEffect - g_dElapsedTime;
+
 		g_dElapsedTime = 0;
 		g_dBounceTime = 0;
 		timerDanger = 0;
@@ -767,8 +798,12 @@ void renderMap()
 		timerAIAttack = 0;
 		timerHealthEffect = 0;
 
-		if (mapGen.getFloorLevel() % 2 == 0 && entityBase.getPlayerHealth() < 30 && mapGen.hellMode)
+
+		if (mapGen.getFloorLevel() % 6 == 0 && entityBase.getPlayerMaxHealth() < 30 && mapGen.hellMode)
+		{
 			entityBase.damagePlayer(-1);
+			entityBase.increasePlayerMaxHealth(1);
+		}
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------
@@ -789,6 +824,8 @@ void renderMap()
 	{
 		setHighScore(mapGen.getFloorLevel());
 		g_eGameState = S_GAMEOVER;
+		g_dElapsedTime = 0;
+		timerSelection = 0;
 	}
 }
 
@@ -796,13 +833,33 @@ void renderCharacter()
 {
     // Draw the location of the character
     WORD charColor;
+	char player;
 
 	if (mapGen.getArrayCharacter(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y) == mapGen.enemy)
 		charColor = 0x0C;
 	else
 		charColor = 0x0A;
 
-	g_Console.writeToBuffer(g_sChar.m_cLocation, mapGen.player, charColor); //CHARACTER STUFF
+	switch (facing)
+	{
+	case 0: 
+		player = '^';
+		break;
+	case 1:
+		player = 'V';
+		break;
+	case 2:
+		player = '<';
+		break;
+	case 3:
+		player = '>';
+		break;
+	default:
+		player = '^';
+		break;
+	}
+
+	g_Console.writeToBuffer(g_sChar.m_cLocation, player, charColor); //CHARACTER STUFF
 }
 
 void renderFramerate()

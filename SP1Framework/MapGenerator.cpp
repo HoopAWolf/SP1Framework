@@ -74,14 +74,14 @@ if (!renderMapAlready) {
 										&& PlayerY < (mazeSizeY / 2))
 									{
 										XlocationX =  (rand() % 30) + 1;
-										XlocationY = j + (rand() % 20) + 5;
+										XlocationY = j + (rand() % 20) + 10;
 
 									}
 									else if (j >(mazeSizeY / 2)
 										&& PlayerY > (mazeSizeY / 2))
 									{
 										XlocationX = (rand() % 30) + 1;
-										XlocationY = j - (rand() % 20) + 5;
+										XlocationY = j - (rand() % 20) + 10;
 
 									}
 									else
@@ -150,7 +150,7 @@ if (!renderMapAlready) {
 		inven.setInventoryTorchCount(inven.getTorchCount() + 1);
 	}
 
-	if (getFloorLevel() > 5)
+	if (getFloorLevel() > 5 || hellMode)
 		curse.startARandomCurse();
 
 	//----------------GENERATE ENEMY----------------
@@ -168,7 +168,7 @@ if (renderMapAlready)
 {
 	inven.clearInventory();
 	//---------------------GIVE ITEM AT CERTAIN LEVEL---------------------
-	if (getFloorLevel() > 1)
+	if (getFloorLevel() > 0)
 		inven.setInventory(((getFloorLevel() > 5 || hellMode) ? true : false), 
 		((getFloorLevel() > 15 || hellMode) ? true : false), 
 		((getFloorLevel() > 19 || hellMode) ? true : false), 
@@ -181,6 +181,9 @@ if (renderMapAlready)
 		moveLazer(elapsedTimer);
 
 	mapArray[XlocationX][XlocationY] = stair;
+	if (bombCoord.X != 0 && bombCoord.Y != 0)
+		mapArray[bombCoord.X][bombCoord.Y] = mapGen.bomb;
+
 	inven.torchLocation.clear();
 
 	//----------------WRITING THE MAP FROM ARRAY INTO THE CONSOLE BUFFER----------------
@@ -334,49 +337,83 @@ void MapGenerator::replaceMapCharacterXY(short x, short y, char newChar)
 //----------------GENERATE ENEMY----------------
 void MapGenerator::generateEnemy(short StairX, short StairY)
 {
-	int enemies = 0, maxEnemies = ((hellMode) ? getFloorLevel() / 2 : ((getFloorLevel() > 18) ? ((getFloorLevel() > 25) ? 5 : 3) : 2));
-
 	srand(time(NULL));
 	allEnemyPosition.clear();
 	allEnemytimer.clear();
 
-	int radiusSpawnX = (rand() % 20) + 1, radiusSpawnY = (rand() % 20) + 1;
-
-	if (hellMode && maxEnemies > 30)
-		maxEnemies = 30;
-
-	for (int y = -radiusSpawnY; y <= radiusSpawnY; y++)
+	if (!hellMode)
 	{
-		for (int x = -radiusSpawnX; x <= radiusSpawnX; x++)
+
+		int enemies = 0, maxEnemies = ((getFloorLevel() > 18) ? ((getFloorLevel() > 25) ? 5 : 3) : 2);
+
+
+		int radiusSpawnX = (rand() % 20) + 1, radiusSpawnY = (rand() % 20) + 1;
+
+		for (int y = -radiusSpawnY; y <= radiusSpawnY; y++)
 		{
-			//---------------------INCRASE CHANCE OF SPAWNING PER LEVEL---------------------
-			if (rand() % 100 > ((getFloorLevel() > 18) ? ((getFloorLevel() > 20) ? 65 : 75) : 85) && !hellMode || hellMode)
+			for (int x = -radiusSpawnX; x <= radiusSpawnX; x++)
 			{
-
-				if (maxEnemies <= 0)
-					break;
-
-				if (y != 0 && x != 0)
+				//---------------------INCRASE CHANCE OF SPAWNING PER LEVEL---------------------
+				if (rand() % 100 > ((getFloorLevel() > 18) ? ((getFloorLevel() > 20) ? 65 : 75) : 85))
 				{
-					if (getArrayCharacter(StairX + x, StairY + y) == floors)
+
+					if (maxEnemies <= 0)
+						break;
+
+					if (y != 0 && x != 0)
 					{
-						coord.X = StairX + x;
-						coord.Y = StairY + y;
+						if (getArrayCharacter(StairX + x, StairY + y) == floors)
+						{
+							coord.X = StairX + x;
+							coord.Y = StairY + y;
 
-						mapArray[coord.X][coord.Y] = enemy;
-						allEnemyPosition.push_back(coord);
-						enemies++;
-						maxEnemies--;
+							mapArray[coord.X][coord.Y] = enemy;
+							allEnemyPosition.push_back(coord);
+							enemies++;
+							maxEnemies--;
+						}
+
 					}
+				}
 
+				if (enemies > 2 && !hellMode)
+				{
+					enemies = 0;
+					break;
 				}
 			}
+		}
+	}
+	else
+	{
 
-			if (enemies > 2 && !hellMode)
+		int enemyCount = 0;
+		COORD pos, radius;
+		radius.X = 1;
+		radius.Y = 1;
+
+		while (enemyCount < getFloorLevel() / 2 && enemyCount < 30)
+		{
+			for (coord.X = -radius.X; coord.X < radius.X; coord.X++)
 			{
-				enemies = 0;
-				break;
+				pos.X = StairX + coord.X;
+				if (pos.X < 1 && pos.X > 42)
+					continue;
+				for (coord.Y = -radius.Y; coord.Y < radius.Y; coord.Y++)
+				{
+					pos.Y = StairY + coord.Y;
+					if (pos.Y < 1 && pos.Y > 22)
+						continue;
+					if (getArrayCharacter(pos.X, pos.Y) == floors && (coord.X != 0 || coord.Y != 0) && enemyCount < getFloorLevel() / 2 && enemyCount < 30)
+					{
+						mapArray[pos.X][pos.Y] = enemy;
+						allEnemyPosition.push_back(pos);
+						enemyCount++;
+					}
+				}
 			}
+			radius.X++;
+			radius.Y++;
 		}
 	}
 }
@@ -386,9 +423,11 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 {
 	srand(time(NULL));
 
-	bool isPlayerNearby = false, isLazerNearby = false;
+	bool isPlayerNearby = false, isLazerNearby = false, isBombNearby = false;
 	int differenceBetweenPlayerAndEnemyX, differenceBetweenPlayerAndEnemyY, 
-		differenceBetweenLazerAndEnemyX, differenceBetweenLazerAndEnemyY;
+		differenceBetweenLazerAndEnemyX, differenceBetweenLazerAndEnemyY, 
+		differenceBetweenBombAndEnemyX, differenceBetweenBombAndEnemyY,
+		radiusX = ((hellMode) ? 3 : 5), radiusY = ((hellMode) ? 3 : 4);
 
 	//----------------SETTING MOVEMENT TIMER----------------
 	if (allEnemytimer.size() == 0)
@@ -403,9 +442,9 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 		int entityUpdatedLocationX = allEnemyPosition[j].X, entityUpdatedLocationY = allEnemyPosition[j].Y;
 
 		//----------------CHECK RADIUS OF 10 X 8----------------
-		for (int y = allEnemyPosition[j].Y - 4; y <= allEnemyPosition[j].Y + 4; y++)
+		for (int y = allEnemyPosition[j].Y - radiusY; y <= allEnemyPosition[j].Y + radiusY; y++)
 		{
-			for (int x = allEnemyPosition[j].X - 5; x <= allEnemyPosition[j].X + 5; x++)
+			for (int x = allEnemyPosition[j].X - radiusX; x <= allEnemyPosition[j].X + radiusX; x++)
 			{
 				if (x == playerLocationX && y == playerLocationY)
 				{
@@ -444,41 +483,308 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 					}
 				}
 			}
-		}
 
-		//----------------THIS TIMER SLOWS DOWN THEIR MOVEMENTS----------------
-		if (elapsedTimer > allEnemytimer[j] + 0.3)
-		{
-			//----------------RUNNING FROM LAZER----------------
-			if (isLazerNearby)
-			{ 
-				if (differenceBetweenLazerAndEnemyY != 0)
+
+			//----------------CHECK RADIUS OF 10 X 8----------------
+			for (int y = allEnemyPosition[j].Y - 4; y <= allEnemyPosition[j].Y + 4; y++)
+			{
+				for (int x = allEnemyPosition[j].X - 5; x <= allEnemyPosition[j].X + 5; x++)
 				{
-					//----------------MOVING DOWN(+)----------------
-					if (differenceBetweenLazerAndEnemyY < 0)
+					if (getArrayCharacter(x, y) == bomb)
 					{
-						//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
+						isBombNearby = true;
+
+						//----------------GETTING DISTANCE BETWEEN ENEMY AND PLAYER----------------
+						differenceBetweenBombAndEnemyX = allEnemyPosition[j].X - x;
+						differenceBetweenBombAndEnemyY = allEnemyPosition[j].Y - y;
+
+						//----------------BREAK ONCE CALCULATED DISTANCE----------------
+						break;
+
+					}
+				}
+			}
+
+			//----------------THIS TIMER SLOWS DOWN THEIR MOVEMENTS----------------
+			if (elapsedTimer > allEnemytimer[j] + 0.3)
+			{
+				//----------------RUNNING FROM LAZER----------------
+				if (isBombNearby)
+				{
+					if (differenceBetweenBombAndEnemyY != 0)
+					{
+						//----------------MOVING DOWN(+)----------------
+						if (differenceBetweenBombAndEnemyY < 0)
+						{
+							//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
+
+								//----------------REPLACING LAST LOCATION WITH FLOOR----------------
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY -= 1;
+
+								//----------------UPDATING POSITION----------------
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+
+								//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING UP(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY + 1] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY += 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+
+					if (differenceBetweenBombAndEnemyX != 0)
+					{
+						//----------------MOVING RIGHT(+)----------------
+						if (differenceBetweenBombAndEnemyX < 0)
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX -= 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING LEFT(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX += 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+				}
+
+				if (isLazerNearby)
+				{
+					if (differenceBetweenLazerAndEnemyY != 0)
+					{
+						//----------------MOVING DOWN(+)----------------
+						if (differenceBetweenLazerAndEnemyY < 0)
+						{
+							//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
+
+								//----------------REPLACING LAST LOCATION WITH FLOOR----------------
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY -= 1;
+
+								//----------------UPDATING POSITION----------------
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+
+								//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING UP(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY + 1] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY += 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+
+					if (differenceBetweenLazerAndEnemyX != 0)
+					{
+						//----------------MOVING RIGHT(+)----------------
+						if (differenceBetweenLazerAndEnemyX < 0)
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX -= 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING LEFT(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX += 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+				}
+				//----------------CHECKING IF PLAYER IS NEARBY----------------
+				else if (isPlayerNearby)
+				{
+					if (differenceBetweenPlayerAndEnemyY != 0)
+					{
+						//----------------MOVING DOWN(+)----------------
+						if (differenceBetweenPlayerAndEnemyY < 0)
+						{
+							//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY + 1] = enemy;
+
+								//----------------REPLACING LAST LOCATION WITH FLOOR----------------
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY += 1;
+
+								//----------------UPDATING POSITION----------------
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+
+								//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING UP(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
+							{
+								mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationY -= 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+
+					if (differenceBetweenPlayerAndEnemyX != 0)
+					{
+						//----------------MOVING RIGHT(+)----------------
+						if (differenceBetweenPlayerAndEnemyX < 0)
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX += 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+						//----------------MOVING LEFT(-)----------------
+						else
+						{
+							if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
+							{
+								mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
+
+								if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
+									mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
+
+								entityUpdatedLocationX -= 1;
+								coord.X = entityUpdatedLocationX;
+								coord.Y = entityUpdatedLocationY;
+								allEnemyPosition[j] = coord;
+								allEnemytimer[j] = elapsedTimer;
+							}
+						}
+					}
+				}
+				else
+				{
+
+					//----------------MOVING UP(-)----------------
+					if (rand() % 100 >= 50)
+					{
 						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
 						{
 							mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
 
-							//----------------REPLACING LAST LOCATION WITH FLOOR----------------
 							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
 								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
 
 							entityUpdatedLocationY -= 1;
-
-							//----------------UPDATING POSITION----------------
 							coord.X = entityUpdatedLocationX;
 							coord.Y = entityUpdatedLocationY;
-
-							//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
 							allEnemyPosition[j] = coord;
 							allEnemytimer[j] = elapsedTimer;
 						}
 					}
-					//----------------MOVING UP(-)----------------
-					else
+					//----------------MOVING DOWN(+)----------------
+					if (rand() % 100 >= 50)
 					{
 						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
 						{
@@ -494,97 +800,10 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 							allEnemytimer[j] = elapsedTimer;
 						}
 					}
-				}
 
-				if (differenceBetweenLazerAndEnemyX != 0)
-				{
+
 					//----------------MOVING RIGHT(+)----------------
-					if (differenceBetweenLazerAndEnemyX < 0)
-					{
-						if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
-						{
-							mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
-
-							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-							entityUpdatedLocationX -= 1;
-							coord.X = entityUpdatedLocationX;
-							coord.Y = entityUpdatedLocationY;
-							allEnemyPosition[j] = coord;
-							allEnemytimer[j] = elapsedTimer;
-						}
-					}
-					//----------------MOVING LEFT(-)----------------
-					else
-					{
-						if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
-						{
-							mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
-
-							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-							entityUpdatedLocationX += 1;
-							coord.X = entityUpdatedLocationX;
-							coord.Y = entityUpdatedLocationY;
-							allEnemyPosition[j] = coord;
-							allEnemytimer[j] = elapsedTimer;
-						}
-					}
-				}
-			}
-			//----------------CHECKING IF PLAYER IS NEARBY----------------
-			else if (isPlayerNearby)
-			{
-				if (differenceBetweenPlayerAndEnemyY != 0)
-				{
-					//----------------MOVING DOWN(+)----------------
-					if (differenceBetweenPlayerAndEnemyY < 0)
-					{
-						//----------------CHECK FOR EMPTY SPACE BEFORE MOVING ENEMY----------------
-						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
-						{
-							mapArray[entityUpdatedLocationX] [entityUpdatedLocationY + 1] = enemy;
-
-							//----------------REPLACING LAST LOCATION WITH FLOOR----------------
-							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-							entityUpdatedLocationY += 1;
-
-							//----------------UPDATING POSITION----------------
-							coord.X = entityUpdatedLocationX;
-							coord.Y = entityUpdatedLocationY;
-
-							//----------------PUSHING UPDATED POSITION INTO VECTOR----------------
-							allEnemyPosition[j] = coord;
-							allEnemytimer[j] = elapsedTimer;
-						}
-					}
-					//----------------MOVING UP(-)----------------
-					else
-					{
-						if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
-						{
-							mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
-
-							if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-								mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-							entityUpdatedLocationY -= 1;
-							coord.X = entityUpdatedLocationX;
-							coord.Y = entityUpdatedLocationY;
-							allEnemyPosition[j] = coord;
-							allEnemytimer[j] = elapsedTimer;
-						}
-					}
-				}
-
-				if (differenceBetweenPlayerAndEnemyX != 0)
-				{
-					//----------------MOVING RIGHT(+)----------------
-					if (differenceBetweenPlayerAndEnemyX < 0)
+					if (rand() % 100 >= 50)
 					{
 						if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
 						{
@@ -601,7 +820,7 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 						}
 					}
 					//----------------MOVING LEFT(-)----------------
-					else
+					if (rand() % 100 >= 50)
 					{
 						if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
 						{
@@ -617,82 +836,8 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 							allEnemytimer[j] = elapsedTimer;
 						}
 					}
+
 				}
-			}
-			else
-			{
-
-				//----------------MOVING UP(-)----------------
-				if (rand() % 100 >= 50)
-				{
-					if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY - 1))
-					{
-						mapArray[entityUpdatedLocationX][entityUpdatedLocationY - 1] = enemy;
-
-						if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-							mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-						entityUpdatedLocationY -= 1;
-						coord.X = entityUpdatedLocationX;
-						coord.Y = entityUpdatedLocationY;
-						allEnemyPosition[j] = coord;
-						allEnemytimer[j] = elapsedTimer;
-					}
-				}
-				//----------------MOVING DOWN(+)----------------
-				if (rand() % 100 >= 50)
-				{
-					if (checkForEmptySpace(entityUpdatedLocationX, entityUpdatedLocationY + 1))
-					{
-						mapArray[entityUpdatedLocationX][entityUpdatedLocationY + 1] = enemy;
-
-						if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-							mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-						entityUpdatedLocationY += 1;
-						coord.X = entityUpdatedLocationX;
-						coord.Y = entityUpdatedLocationY;
-						allEnemyPosition[j] = coord;
-						allEnemytimer[j] = elapsedTimer;
-					}
-				}
-
-
-				//----------------MOVING RIGHT(+)----------------
-				if (rand() % 100 >= 50)
-				{
-					if (checkForEmptySpace(entityUpdatedLocationX + 1, entityUpdatedLocationY))
-					{
-						mapArray[entityUpdatedLocationX + 1][entityUpdatedLocationY] = enemy;
-
-						if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-							mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-						entityUpdatedLocationX += 1;
-						coord.X = entityUpdatedLocationX;
-						coord.Y = entityUpdatedLocationY;
-						allEnemyPosition[j] = coord;
-						allEnemytimer[j] = elapsedTimer;
-					}
-				}
-				//----------------MOVING LEFT(-)----------------
-				if (rand() % 100 >= 50)
-				{
-					if (checkForEmptySpace(entityUpdatedLocationX - 1, entityUpdatedLocationY))
-					{
-						mapArray[entityUpdatedLocationX - 1][entityUpdatedLocationY] = enemy;
-
-						if (mapArray[entityUpdatedLocationX][entityUpdatedLocationY] != stair)
-							mapArray[entityUpdatedLocationX][entityUpdatedLocationY] = floors;
-
-						entityUpdatedLocationX -= 1;
-						coord.X = entityUpdatedLocationX;
-						coord.Y = entityUpdatedLocationY;
-						allEnemyPosition[j] = coord;
-						allEnemytimer[j] = elapsedTimer;
-					}
-				}
-
 			}
 		}
 	}
@@ -987,16 +1132,18 @@ void MapGenerator::resetLazer()
 void MapGenerator::playerVision(int elapsedTimer, int PlayerX, int PlayerY)
 {
 	COORD c;
+	int radiusX = ((hellMode) ? 3 : 2), radiusY = ((hellMode) ? 3 : 1);
+
 	//---------------------THE 3 X 3 VISION---------------------
 	if (curse.getActiveCurseShort() == 3 || curse.getActiveCurse2Short() == 3)
 	{
 		//---------------------CHECK FOR DARKNESS CURSE, DISPLAY HALF THE TIME---------------------
 		if (elapsedTimer % 2 == 0)
 		{
-			for (int i = PlayerY + 1; i >= PlayerY - 1; i--)
+			for (int i = PlayerY + radiusY; i >= PlayerY - radiusY; i--)
 			{
 				c.Y = i;
-				for (int j = PlayerX + 2; j >= PlayerX - 2; j--)
+				for (int j = PlayerX + radiusX; j >= PlayerX - radiusX; j--)
 				{
 					c.X = j;
 					//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
@@ -1020,10 +1167,10 @@ void MapGenerator::playerVision(int elapsedTimer, int PlayerX, int PlayerY)
 	}
 	else
 	{
-		for (int i = PlayerY + 1; i >= PlayerY - 1; i--)
+		for (int i = PlayerY + radiusY; i >= PlayerY - radiusY; i--)
 		{
 			c.Y = i;
-			for (int j = PlayerX + 2; j >= PlayerX - 2; j--)
+			for (int j = PlayerX + radiusX; j >= PlayerX - radiusX; j--)
 			{
 				c.X = j;
 				//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
@@ -1049,15 +1196,18 @@ void MapGenerator::playerVision(int elapsedTimer, int PlayerX, int PlayerY)
 //----------------RENDERING TORCH LIT UP AREA----------------
 void MapGenerator::torchView()
 {
+
+	int radiusX = ((hellMode) ? 5 : 4), radiusY = ((hellMode) ? 5 : 2);
+
 	if (inven.torchLocation.size() > 0)
 	{
 		for (int i = 0; i < inven.torchLocation.size(); i++)
 		{
 			COORD torchCoord;
-			for (int y = inven.torchLocation[i].Y - 2; y <= inven.torchLocation[i].Y + 2; y++)
+			for (int y = inven.torchLocation[i].Y - radiusY; y <= inven.torchLocation[i].Y + radiusY; y++)
 			{
 				torchCoord.Y = y;
-				for (int x = inven.torchLocation[i].X - 4; x <= inven.torchLocation[i].X + 4; x++)
+				for (int x = inven.torchLocation[i].X - radiusX; x <= inven.torchLocation[i].X + radiusX; x++)
 				{
 					torchCoord.X = x;
 					//----------------DISPLAYING FLOORS, END GOAL(STAIR), WALLS, ENEMIES----------------
@@ -1090,15 +1240,23 @@ void MapGenerator::lazerView()
 		{
 			COORD lazerCoord;
 			int radiusY, radiusX;
-			if (allLazerFacing[i] > 1)
+			if (mapGen.hellMode)
 			{
 				radiusY = 1;
-				radiusX = 2;
+				radiusX = 1;
 			}
 			else
 			{
-				radiusY = 2;
-				radiusX = 1;
+				if (allLazerFacing[i] > 1)
+				{
+					radiusY = 1;
+					radiusX = 2;
+				}
+				else
+				{
+					radiusY = 2;
+					radiusX = 1;
+				}
 			}
 
 			for (int y = allLazerPosition[i].Y - radiusY; y <= allLazerPosition[i].Y + radiusY; y++)

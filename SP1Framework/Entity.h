@@ -14,14 +14,6 @@ class Entity
 {
 
 private:
-	struct EnemyBase
-	{
-		//----------------ENEMY HEALTH----------------
-		int Enemyhealth;
-		//----------------ENEMY SPEED----------------
-		int Enemyspeed;
-
-	} EnemyBase;
 
 	struct PlayerBase
 	{
@@ -29,6 +21,8 @@ private:
 		int Playerhealth = 20;
 		//----------------PLAYER SPEED----------------
 		int Playerspeed = 1;
+		//----------------PLAYER MAX HEALTH----------------
+		int PlayerMaxHealth = 20;
 
 	} PlayerBase;
 
@@ -48,9 +42,14 @@ public:
 	int getEnemyHealth();
 	//----------------GET PLAYER HEALTH----------------
 	int getPlayerHealth();
+	//----------------GET PLAYER MAX HEALTH----------------
+	int getPlayerMaxHealth();
+	//----------------INCREASE PLAYER MAX HEALTH----------------
+	void increasePlayerMaxHealth(short health);
 
 	//----------------DAMAGE PLAYER----------------
 	void damagePlayer(short i);
+
 };
 
 

@@ -16,9 +16,11 @@ class MapGenerator {
 public:
 
 	//----------------THIS IS THE WALL SYMBOL FROM ASCII----------------
-	char walls = 178, floors = 176, stair = 'X', enemy = 146, player = '#', bomb = 64, torch = 'I', bombDrop = 'B', ammoDrop = 'R', verticalLazer = '|', horizontalLazer = 196, enemyGrave = 206;
+	char walls = 178, floors = 176, stair = 'X', enemy = 146, bomb = 64, torch = 'I', bombDrop = 'B', ammoDrop = 'R', verticalLazer = '|', horizontalLazer = 196, enemyGrave = 206;
 
 	bool hellMode;
+
+	COORD bombCoord;
 
 	//----------------THIS IS THE COLOUR CODES----------------
 	WORD floorColor = 0x0A, wallColor = 0x0C, blackColor = 0x0000, echoedFloor = 0x08, enemyColor = 0x0C, torchColor = 0x0D, itemDropColor = 0x0D, lazerColor = 0xAC;

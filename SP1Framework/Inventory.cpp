@@ -92,6 +92,8 @@ void Inventory::useExplosion(short bombPosX, short bombPosY, int playerX, int pl
 		}
 	}
 
+	mapGen.bombCoord.X = 0;
+	mapGen.bombCoord.Y = 0;
 }
 
 //------------CLEAR INVENTORY BY RESETING ALL SLOTS TO "-" CHARACTER------------
@@ -146,8 +148,6 @@ int Inventory::getInventorySize()
 {
 	return 	InventoryStorage.InventorySlot.size();
 }
-
-
 
 
 //------------DECREASE BOMB QUANTITY BY 1------------

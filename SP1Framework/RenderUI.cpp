@@ -89,7 +89,7 @@ void renderHealthbar()
 	c.X = 50;
 
 	//---------------------PRINT HEALTH---------------------
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < entityBase.getPlayerMaxHealth(); i++)
 	{
 		if (i == 0)
 			HPBar << "[";
@@ -99,13 +99,13 @@ void renderHealthbar()
 		else
 			HPBar << "-"; //------------PRINT '-' FOR MISSING HEALTH------------
 
-		if (i == 19)
+		if (i == entityBase.getPlayerMaxHealth() - 1)
 			HPBar << "]";
 	}
 
 	g_Console.writeToBuffer(c, HPBar.str(), 0x0C/* red color */);
 
-	HPcout << "Health: " << entityBase.getPlayerHealth() << "/20";
+	HPcout << "Health: " << entityBase.getPlayerHealth() << "/" << entityBase.getPlayerMaxHealth();
 
 	c.X += 4;
 	c.Y += 1;
