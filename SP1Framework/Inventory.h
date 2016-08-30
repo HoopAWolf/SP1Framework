@@ -16,7 +16,7 @@ private:
 
 		vector<string> InventorySlot;
 
-		//---------------------CONTAINS COOLDOWNS, BOMB RADIUS, AMMOUNT OF ITEMS---------------------
+		//---------------------CONTAINS COOLDOWNS, BOMB RADIUS, AMOUNT OF ITEMS---------------------
 		short rickaxeTimer, bombCount = 0,
 			bombRadius = 2, pickAxeLength = 1, bombCountDown = 0, 
 			bombCoolDown = 0, rickAxeCoolDown = 0, laserRifleCoolDown = 0,
@@ -43,7 +43,7 @@ public:
 	//----------------SET INVENTORY ITEM----------------
 	void setInventory(bool setRickAxe, bool setBomb, bool setRifle, bool setTorch);
 
-	//----------------GET SPECIFIC ITEM: 1 - RICKAXE, 2 - BOMB, 3 - NOTHING YET, 4 - NOTHING YET----------------
+	//----------------GET SPECIFIC ITEM: 1 - RICKAXE, 2 - BOMB, 3 - RIFLE, 4 - TORCH----------------
 	string getInventoryItem(int i);
 
 	//----------------GET INVEONTORY SIZE----------------
@@ -101,12 +101,12 @@ public:
 	void resetBombCoolDown();
 	//------------RESET RICKAXE COOLDOWN------------
 	void resetRickAxeCoolDown();
-	//------------RESET LAZER RIFLE COOLDOWN------------
+	//------------RESET LASER RIFLE COOLDOWN------------
 	void resetLaserRifleCoolDown();
 
 
 
-	//------------SET LAZER RIFLE AMMO------------
+	//------------SET LASER RIFLE AMMO------------
 	void setInventoryLaserRifleAmmountCount(short ammount);
 	//------------SET TORCH AMMO------------
 	void setInventoryTorchCount(short ammount);

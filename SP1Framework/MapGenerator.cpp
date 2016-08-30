@@ -130,7 +130,7 @@ if (!renderMapAlready) {
 			chanceForGoal++;
 	}
 
-	//----------------SETTING PLAYER LOCATION TO FLOOR SO IT WILL NOT STUCK IN WALL OR DIE A TERRIBU DEATHFU----------------
+	//----------------SETTING PLAYER LOCATION TO FLOOR SO IT WILL NOT BE STUCK IN A WALL----------------
 	mapArray[PlayerX][PlayerY] = floors;
 	FloorNo++;
 
@@ -195,7 +195,7 @@ if (renderMapAlready)
 		{
 			c.X = i;
 
-			//----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
+			//----------------SETTING MAP TO TOTAL DARKNESS----------------
 			if (mapArray[i][j] == torch)
 			{
 				g_Console.writeToBuffer(c, mapArray[i][j], torchColor);
@@ -210,13 +210,13 @@ if (renderMapAlready)
 			else if (mapArray[i][j] == bomb)
 			{
 				if (bombCountDownTimer == 0)
-					bombCountDownTimer = elapsedTimer;
+					bombCountDownTimer = (int)elapsedTimer;
 
 				//----------------SETTING BOMB COUNTDOWN----------------
 				if (inven.getBombCountDown() > 0)
 				{
 					if (bombCountDownTimer == 0)
-						bombCountDownTimer = elapsedTimer + 1;
+						bombCountDownTimer = (int)elapsedTimer + 1;
 
 					if (elapsedTimer > bombCountDownTimer)
 					{
@@ -238,7 +238,7 @@ if (renderMapAlready)
 					else
 						g_Console.writeToBuffer(c, mapGen.getArrayCharacter(i, j), 0x0A/*green*/);
 
-					bombCountDownTimer = elapsedTimer + 1;
+					bombCountDownTimer = (int)elapsedTimer + 1;
 				}
 			}
 
@@ -248,7 +248,7 @@ if (renderMapAlready)
 			else if(mapArray[i][j] == enemyGrave)
 				g_Console.writeToBuffer(c, mapArray[i][j], wallColor);
 
-			else //----------------SETTING MAP TO TOTAL DARKNESSSSSS AS DARK AS SHISHANTH'S HEART----------------
+			else //----------------SETTING MAP TO TOTAL DARKNESS----------------
 				g_Console.writeToBuffer(c, mapArray[i][j], blackColor);
 
 		}
@@ -473,7 +473,7 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 					{
 						isLazerNearby = true;
 
-						//----------------GETTING DISTANCE BETWEEN ENEMY AND PLAYER----------------
+						//----------------GETTING DISTANCE BETWEEN ENEMY AND LASER----------------
 						differenceBetweenLazerAndEnemyX = allEnemyPosition[j].X - allLazerPosition[i].X;
 						differenceBetweenLazerAndEnemyY = allEnemyPosition[j].Y - allLazerPosition[i].Y;
 
@@ -494,7 +494,7 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 					{
 						isBombNearby = true;
 
-						//----------------GETTING DISTANCE BETWEEN ENEMY AND PLAYER----------------
+						//----------------GETTING DISTANCE BETWEEN ENEMY AND BOMB----------------
 						differenceBetweenBombAndEnemyX = allEnemyPosition[j].X - x;
 						differenceBetweenBombAndEnemyY = allEnemyPosition[j].Y - y;
 
@@ -508,7 +508,7 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 			//----------------THIS TIMER SLOWS DOWN THEIR MOVEMENTS----------------
 			if (elapsedTimer > allEnemytimer[j] + 0.3)
 			{
-				//----------------RUNNING FROM LAZER----------------
+				//----------------RUNNING FROM BOMB----------------
 				if (isBombNearby)
 				{
 					if (differenceBetweenBombAndEnemyY != 0)
@@ -843,17 +843,15 @@ void MapGenerator::moveAI(short playerLocationX, short playerLocationY, double e
 	}
 }
 
-//----------------LAZER MOVEMENTS----------------
+//----------------LASER MOVEMENTS----------------
 void MapGenerator::moveLazer(double elapsedTimer)
 {
 	COORD lazerCoord;
 
-	//LEAVE LIGHT FEED BACK
-
 	for (int i = 0; i < allLazerPosition.size(); i++)
 	{
 		bool enemyDeleted = false;
-		//----------------TIMER FOR LAZER----------------
+		//----------------TIMER FOR LASER----------------
 		if (elapsedTimer > allLazerTimer[i] + 0.1)
 		{
 			//----------------MOVING UP----------------
@@ -873,7 +871,7 @@ void MapGenerator::moveLazer(double elapsedTimer)
 							//----------------CHECKING ENEMY POSITION VECTOR----------------
 							if (lazerCoord.X == allEnemyPosition[j].X && lazerCoord.Y == allEnemyPosition[j].Y)
 							{
-								//----------------REMOVING LAZER AND ENEMY IF THEY COME IN CONTACT----------------
+								//----------------REMOVING LASER AND ENEMY IF THEY COME IN CONTACT----------------
 								mapArray[allEnemyPosition[j].X][allEnemyPosition[j].Y] = mapGen.enemyGrave;
 								mapArray[lazerCoord.X][lazerCoord.Y + 1] = mapGen.floors;
 								allLazerPosition.erase(allLazerPosition.begin() + i);
@@ -891,10 +889,10 @@ void MapGenerator::moveLazer(double elapsedTimer)
 
 					if (!enemyDeleted)
 					{
-						//----------------MOVING LAZERS----------------
+						//----------------MOVING LASERS----------------
 						mapArray[allLazerPosition[i].X][allLazerPosition[i].Y - 1] = mapGen.verticalLazer;
 
-						//----------------REPLACING LAZER BACK WITH FLOOR----------------
+						//----------------REPLACING LASER BACK WITH FLOOR----------------
 						if (mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] != stair)
 							mapArray[allLazerPosition[i].X][allLazerPosition[i].Y] = floors;
 
@@ -1088,12 +1086,12 @@ void MapGenerator::spawnLazer(short facing, int playerX, int playerY, double ela
 	COORD lazerCoord;
 	lazerCoord.X = playerX;
 	lazerCoord.Y = playerY;
-	//----------------PUSH LOCATION, FACE AND TIMER INTO LAZER VECTORS----------------
+	//----------------PUSH LOCATION, FACE AND TIMER INTO LASER VECTORS----------------
 	allLazerPosition.push_back(lazerCoord);
 	allLazerFacing.push_back(facing);
 	allLazerTimer.push_back(elapsedTimer);
 
-	//----------------DISPLAYING LAZER----------------
+	//----------------DISPLAYING LASER----------------
 	mapArray[lazerCoord.X][lazerCoord.Y] = ((facing > 1) ? mapGen.horizontalLazer : mapGen.verticalLazer);
 }
 
@@ -1116,7 +1114,7 @@ bool MapGenerator::checkForEmptySpaceLazer(short x, short y)
 	return false;
 }
 
-//----------------RESET LAZER VECTORS----------------
+//----------------RESET LASER VECTORS----------------
 void MapGenerator::resetLazer()
 {
 	if (allLazerPosition.size() != 0)
@@ -1231,7 +1229,7 @@ void MapGenerator::torchView()
 	}
 }
 
-//----------------RENDER LIGHT ON LAZER----------------
+//----------------RENDER LIGHT ON LASER----------------
 void MapGenerator::lazerView()
 {
 	if (allLazerPosition.size() > 0)

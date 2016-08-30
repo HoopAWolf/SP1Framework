@@ -30,13 +30,13 @@ public:
 	//----------------ALL ENEMY TIMER FOR MOVEMENTS----------------
 	vector<long double> allEnemytimer;
 
-	//----------------ALL LAZER TIMER FOR MOVEMENTS----------------
+	//----------------ALL LASER TIMER FOR MOVEMENTS----------------
 	vector<long double> allLazerTimer;
 
-	//----------------ALL LAZER POSITION FOR MOVEMENTS----------------
+	//----------------ALL LASER POSITION FOR MOVEMENTS----------------
 	vector<COORD> allLazerPosition;
 
-	//----------------ALL LAZER POSITION FOR MOVEMENTS----------------
+	//----------------ALL LASER POSITION FOR MOVEMENTS----------------
 	vector<long int> allLazerFacing;// 0 - UP, 1 - DOWN, 2 - LEFT, 3 - RIGHT
 
 	//----------------GENERATE MAP----------------
@@ -69,17 +69,17 @@ public:
 	void moveAI(short playerLocationX, short playerLocationY, double elapsedTimer);
 	//----------------GENERATE ENEMY----------------
 	void generateEnemy(short StairX, short StairY);
-	//----------------CHECK FOR EMPTY SPACES(FOR AI MOVEMENTS AND LAZER)----------------
+	//----------------CHECK FOR EMPTY SPACES(FOR AI MOVEMENTS AND LASER)----------------
 	bool checkForEmptySpace(short x, short y);
 	bool checkForEmptySpaceLazer(short x, short y);
 
-	//----------------SPAWNS LAZER----------------
+	//----------------SPAWNS LASER----------------
 	void spawnLazer(short facing, int playerX, int playerY, double elapsedTimer);
-	//----------------MOVES LAZER----------------
+	//----------------MOVES LASER----------------
 	void moveLazer(double elapsedTimer);
-	//----------------RESET LAZER FACING, COORD AND TIMING VECTORS----------------
+	//----------------RESET LASER FACING, COORD AND TIMING VECTORS----------------
 	void resetLazer();
-	//----------------RENDER LIGHT ON LAZER----------------
+	//----------------RENDER LIGHT ON LASER----------------
 	void lazerView();
 };	
 

@@ -18,6 +18,19 @@
 #include <windows.h>
 #include "MMSystem.h"
 #include "Windows.h"
+#include "playsoundapi.h"
+
+
+/*------------------------------------------
+* DONE BY:
+*
+*
+* - RICK
+* - ESTHER
+* - CHEE MUN
+*
+*
+*------------------------------------------*/
 
 //----------------THIS IS TO SET THE SIZE OF MAZE----------------
 #define MAZEX 43
@@ -188,7 +201,7 @@ void splashScreenWait()    // waits for time to pass in splash screen
 
 	processUserInputSplashScreen();
 
-	if (g_dElapsedTime > timerSelection + 0.01)
+	if (g_dElapsedTime > timerSelection + 0.2)
 	{
 		if (g_abKeyPressed[K_ENTER] && selection == 0)
 		{ // PRESS ENTER TO START GAME
@@ -467,7 +480,7 @@ void moveCharacter()
     if (bSomethingHappened)
     {
         // set the bounce time to some time in the future to prevent accidental triggers
-        g_dBounceTime = g_dElapsedTime + 0.033; // 125ms should be enough
+        g_dBounceTime = g_dElapsedTime + 0.033; // 33ms should be enough
     }
 }
 
@@ -556,6 +569,8 @@ void processUserInputEndScreen()
 			timeAttack = 60;
 			timerAIAttack = 0;
 			timerHealthEffect = 0;
+			mapGen.bombCoord.X = 0;
+			mapGen.bombCoord.Y = 0;
 			timerSelection = 0;
 			g_dElapsedTime = 0;
 		}
@@ -661,7 +676,8 @@ void renderMap()
 
 		for (int i = playerLocationY + radiusY; i >= playerLocationY - radiusY; i--)
 		{
-			if (radiusY >= 4) {
+			if (radiusY >= ((mapGen.hellMode) ? 9 : 4)) 
+			{
 				//----------------MAKE END POINT VISIBLE FOR 2 SEC----------------
 				c.X = mapGen.getStairLocationX();
 				c.Y = mapGen.getStairLocationY();
@@ -689,7 +705,7 @@ void renderMap()
 		if (g_dElapsedTime > timer + 1)
 		{
 			timer = (int)g_dElapsedTime;
-			radiusX -= 2;
+			radiusX -= ((mapGen.hellMode) ? 1 : 2);
 			radiusY--;
 		}
 
@@ -701,7 +717,7 @@ void renderMap()
 		}
 	}
 
-	mapGen.playerVision(g_dElapsedTime, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
+	mapGen.playerVision((int)g_dElapsedTime, g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y);
 	mapGen.torchView();
 	mapGen.lazerView();
 
@@ -710,12 +726,12 @@ void renderMap()
 	{
 		//---------------------MINUS HP EVERY 3 SEC---------------------
 		if (timerHealthEffect == 0)
-			timerHealthEffect = g_dElapsedTime;
+			timerHealthEffect = (int)g_dElapsedTime;
 
 		if (g_dElapsedTime > timerHealthEffect + ((mapGen.hellMode) ? 8 : 3))
 		{
 			curse.bleedCurse();
-			timerHealthEffect = g_dElapsedTime;
+			timerHealthEffect = (int)g_dElapsedTime;
 		}
 	} 
 	else
@@ -739,35 +755,35 @@ void renderMap()
 			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
 			inven.decreaseBombCoolDown();
 		}
-		timerBomb = g_dElapsedTime + 1;
+		timerBomb = (int)g_dElapsedTime + 1;
 	}
 
 	//----------------COOLDOWN OF THE RICKAXE----------------
 	if (inven.getRickAxeCoolDown() > 0)
 	{
 		if (timerRickAxe == 0)
-			timerRickAxe = g_dElapsedTime + 1;
+			timerRickAxe = (int)g_dElapsedTime + 1;
 
 		if (g_dElapsedTime > timerRickAxe)
 		{
 			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
 			inven.decreaseRickAxeCoolDown();
 		}
-		timerRickAxe = g_dElapsedTime + 1;
+		timerRickAxe = (int)g_dElapsedTime + 1;
 	}
 
-	//----------------COOLDOWN OF THE LAZER RIFLE----------------
+	//----------------COOLDOWN OF THE LASER RIFLE----------------
 	if (inven.getLaserRifleCoolDown() > 0)
 	{
 		if (timerLaserRifle == 0)
-			timerLaserRifle = g_dElapsedTime + 1;
+			timerLaserRifle = (int)g_dElapsedTime + 1;
 
 		if (g_dElapsedTime > timerLaserRifle)
 		{
 			//----------------DECREASE COOLDOWN UNTIL REACH ZERO----------------
 			inven.decreaseLaserRifleCoolDown();
 		}
-		timerLaserRifle = g_dElapsedTime + 1;
+		timerLaserRifle = (int)g_dElapsedTime + 1;
 	}
 
 	//---------------------GENERATE A NEW MAP BUT KEEPS THE PLAYER CURRENT LOCATION WHEN REACH GOAL (AKA CREATES NEXT LEVEL)---------------------
@@ -804,6 +820,9 @@ void renderMap()
 			entityBase.damagePlayer(-1);
 			entityBase.increasePlayerMaxHealth(1);
 		}
+
+		mapGen.bombCoord.X = 0;
+		mapGen.bombCoord.Y = 0;
 	}
 
 	//---------------------DAMAGE PLAYER IF THE ENEMY TOUCHES THE PLAYER---------------------

@@ -183,7 +183,7 @@ void renderInstructions()
 
 	c.Y = 0;
 	c.X = 5;
-	g_Console.writeToBuffer(c, "DEEP INSTURCTION MANUAL 101", 0x02/* green color */);
+	g_Console.writeToBuffer(c, "DEEP INSTRUCTION MANUAL 101", 0x02/* green color */);
 
 	c.Y += 1;
 	g_Console.writeToBuffer(c, "[Press ESC or SPACE to return]", 0x02/* green color */);

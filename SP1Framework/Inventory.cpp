@@ -86,6 +86,21 @@ void Inventory::useExplosion(short bombPosX, short bombPosY, int playerX, int pl
 				if (mapGen.getArrayCharacter(j, i) == mapGen.walls)
 					mapGen.replaceMapCharacterXY(j, i, mapGen.floors);
 
+				else if (mapGen.getArrayCharacter(j, i) == mapGen.enemy)
+				{
+					mapGen.replaceMapCharacterXY(j, i, mapGen.floors);
+
+					for (int k = 0; k < mapGen.allEnemyPosition.size(); k++)
+					{
+						if (mapGen.allEnemyPosition[k].X == j && mapGen.allEnemyPosition[k].Y == i)
+						{
+							mapGen.replaceMapCharacterXY(mapGen.allEnemyPosition[k].X, mapGen.allEnemyPosition[k].Y, mapGen.enemyGrave);
+							mapGen.allEnemyPosition.erase(mapGen.allEnemyPosition.begin() + k);
+							mapGen.allEnemytimer.erase(mapGen.allEnemytimer.begin() + k);
+						}
+					}
+				}
+
 				if (j == playerX && i == playerY)
 					entityBase.damagePlayer(3);
 			}
