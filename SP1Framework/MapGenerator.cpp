@@ -27,9 +27,21 @@ void MapGenerator::generateMap(short PlayerX, short PlayerY, short mazeSizeX, sh
 COORD c;
 
 if (!renderMapAlready) {
+	
+	for (int y = 0; y < 45; y++)
+	{
+		for (int x = 0; x < 45; x++)
+		{
+			mapArray[x][y] = '0';
+		}
+	}
 
 	allEnemyPosition.clear();
 	allEnemytimer.clear();
+	inven.torchLocation.clear();
+	bombCoord.X = 0;
+	bombCoord.Y = 0;
+	
 	bool spawnPoint = false;
 
 	//----------------THIS USES TIME AS A FACTOR IN THE RAND----------------

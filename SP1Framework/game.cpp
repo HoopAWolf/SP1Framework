@@ -668,7 +668,6 @@ void renderMap()
 
 	COORD c;
 
-
 	mapGen.generateMap(g_sChar.m_cLocation.X, g_sChar.m_cLocation.Y, MAZEX, MAZEY, g_dElapsedTime);
 
 	//---------------------THE ECHO LOCATION VISION---------------------
