@@ -25,7 +25,7 @@ string Curse::getActiveCurseString()
 	if (CurseBase.allCurse.size() <= 0)
 	{
 		for (int i = 0; i < 6; i++)
-			CurseBase.allCurse.push_back(curseArray[i]);
+			CurseBase.allCurse.push_back(*(curseArray + i));
 	}
 
 	return CurseBase.allCurse[CurseBase.activeCurse];
@@ -37,7 +37,7 @@ string Curse::getActiveCurse2String()
 	if (CurseBase.allCurse.size() <= 0)
 	{
 		for (int i = 0; i < 6; i++)
-			CurseBase.allCurse.push_back(curseArray[i]);
+			CurseBase.allCurse.push_back(*(curseArray + i));
 	}
 
 	return CurseBase.allCurse[CurseBase.activeCurse2];

@@ -689,7 +689,7 @@ void renderMap()
 				c.X = j;
 				//----------------MAKING FLOORS AND ENEMIES VISIBLE----------------
 
-				if (j < 43/* MAKING THE ECHO NOT DETECT OUTSIDE THE BOUNDARY */){
+				if (j < MAZEX/* MAKING THE ECHO NOT DETECT OUTSIDE THE BOUNDARY */){
 					if (mapGen.getArrayCharacter(j, i) == mapGen.floors)
 						g_Console.writeToBuffer(c, mapGen.getArrayCharacter(j, i), mapGen.echoedFloor);
 

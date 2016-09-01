@@ -5,7 +5,7 @@
 
 COORD coord;
 
-char mapArray[45][45] = { '0',};
+char mapArray[45][45] = { 0,};
 extern Console g_Console;
 int bombCountDownTimer = 0;
 
@@ -28,20 +28,20 @@ COORD c;
 
 if (!renderMapAlready) {
 	
-	for (int y = 0; y < 45; y++)
-	{
-		for (int x = 0; x < 45; x++)
-		{
-			mapArray[x][y] = '0';
-		}
-	}
+	
 
 	allEnemyPosition.clear();
 	allEnemytimer.clear();
 	inven.torchLocation.clear();
 	bombCoord.X = 0;
 	bombCoord.Y = 0;
-	
+	for (int y = 0; y < mazeSizeY; y++)
+	{
+		for (int x = 0; x < mazeSizeX; x++)
+		{
+			*(*(mapArray + x) + y) = mapGen.floors;
+		}
+	}
 	bool spawnPoint = false;
 
 	//----------------THIS USES TIME AS A FACTOR IN THE RAND----------------
