@@ -5,7 +5,7 @@
 
 COORD coord;
 
-char mapArray[45][45] = { 0,};
+char mapArray[45][45] = { '0',};
 extern Console g_Console;
 int bombCountDownTimer = 0;
 
